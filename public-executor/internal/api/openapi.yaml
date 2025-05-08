@@ -1,0 +1,86 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Decoupage Napkins Shop API server
+paths:
+  /getProductsList:
+    get:
+      tags:
+        - Products
+      operationId: getProductsList
+      description: 'Получить список доступных продуктов'
+      responses:
+        '200':
+          description: 'Положительный ответ'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetProductListResponse'
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Bad Request
+
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+          description: Internal Error
+
+components:
+  schemas:
+    GetProductListResponse:
+      type: object
+      required:
+        - items
+        - totalCount
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        totalCount:
+          type: number
+
+
+    Product:
+      type: object
+      required:
+        - id
+        - name
+        - attributes
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        attributes:
+          type: array
+          items:
+            type: string
+
+    ErrorModel:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorDetailsModel'
+
+    ErrorDetailsModel:
+      type: object
+      required:
+        - code
+        - message
+        - details
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
