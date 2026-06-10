@@ -75,13 +75,13 @@ export async function fetchProductsList(
   const qs = options.categorySlug
     ? `?category=${encodeURIComponent(options.categorySlug)}`
     : ''
-  return get<ApiProductListResponse>(`/getProductsList${qs}`)
+  return get<ApiProductListResponse>(`/api/v1/public/getProductsList${qs}`)
 }
 
 export async function fetchProduct(slug: string): Promise<ApiProduct> {
-  return get<ApiProduct>(`/getProduct/${encodeURIComponent(slug)}`)
+  return get<ApiProduct>(`/api/v1/public/getProduct/${encodeURIComponent(slug)}`)
 }
 
 export async function fetchCategoriesTree(): Promise<ApiCategoriesTreeResponse> {
-  return get<ApiCategoriesTreeResponse>('/getCategoriesTree')
+  return get<ApiCategoriesTreeResponse>('/api/v1/public/getCategoriesTree')
 }

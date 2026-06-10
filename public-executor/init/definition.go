@@ -13,6 +13,7 @@ import (
 	"napkins-shop/public-executor/configs"
 	httpentry "napkins-shop/public-executor/internal/entrypoints/http"
 	categoryentry "napkins-shop/public-executor/internal/entrypoints/http/category"
+	"napkins-shop/public-executor/internal/entrypoints/http/docs"
 	orderentry "napkins-shop/public-executor/internal/entrypoints/http/order"
 	productentry "napkins-shop/public-executor/internal/entrypoints/http/product"
 	"napkins-shop/public-executor/internal/middlewares"
@@ -69,6 +70,7 @@ func Providers() fx.Option {
 		fx.Invoke(
 			middlewares.Register,
 			httpentry.Register,
+			docs.Register,
 		),
 	)
 }

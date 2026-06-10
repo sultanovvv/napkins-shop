@@ -4,7 +4,7 @@ info:
   title: Decoupage Napkins Shop API server
 
 paths:
-  /createOrder:
+  /api/v1/public/createOrder:
     post:
       tags: [Orders]
       operationId: createOrder
@@ -35,7 +35,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /getOrder/{id}:
+  /api/v1/public/getOrder/{id}:
     get:
       tags: [Orders]
       operationId: getOrder
@@ -67,7 +67,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /getProduct/{slug}:
+  /api/v1/public/getProduct/{slug}:
     get:
       tags: [Products]
       operationId: getProduct
@@ -98,7 +98,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /getProductsList:
+  /api/v1/public/getProductsList:
     get:
       tags: [Products]
       operationId: getProductsList
@@ -130,7 +130,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /getCategoriesTree:
+  /api/v1/public/getCategoriesTree:
     get:
       tags: [Categories]
       operationId: getCategoriesTree
@@ -149,7 +149,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
-  /uploadProductImage:
+  /api/v1/public/uploadProductImage:
     post:
       tags: [Products]
       operationId: uploadProductImage

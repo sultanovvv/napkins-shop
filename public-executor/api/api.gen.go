@@ -152,22 +152,22 @@ type UploadProductImageMultipartRequestBody UploadProductImageMultipartBody
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
-	// (POST /createOrder)
+	// (POST /api/v1/public/createOrder)
 	CreateOrder(ctx echo.Context) error
 
-	// (GET /getCategoriesTree)
+	// (GET /api/v1/public/getCategoriesTree)
 	GetCategoriesTree(ctx echo.Context) error
 
-	// (GET /getOrder/{id})
+	// (GET /api/v1/public/getOrder/{id})
 	GetOrder(ctx echo.Context, id int64) error
 
-	// (GET /getProduct/{slug})
+	// (GET /api/v1/public/getProduct/{slug})
 	GetProduct(ctx echo.Context, slug string) error
 
-	// (GET /getProductsList)
+	// (GET /api/v1/public/getProductsList)
 	GetProductsList(ctx echo.Context, params GetProductsListParams) error
 
-	// (POST /uploadProductImage)
+	// (POST /api/v1/public/uploadProductImage)
 	UploadProductImage(ctx echo.Context) error
 }
 
@@ -281,11 +281,11 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
-	router.POST(baseURL+"/createOrder", wrapper.CreateOrder)
-	router.GET(baseURL+"/getCategoriesTree", wrapper.GetCategoriesTree)
-	router.GET(baseURL+"/getOrder/:id", wrapper.GetOrder)
-	router.GET(baseURL+"/getProduct/:slug", wrapper.GetProduct)
-	router.GET(baseURL+"/getProductsList", wrapper.GetProductsList)
-	router.POST(baseURL+"/uploadProductImage", wrapper.UploadProductImage)
+	router.POST(baseURL+"/api/v1/public/createOrder", wrapper.CreateOrder)
+	router.GET(baseURL+"/api/v1/public/getCategoriesTree", wrapper.GetCategoriesTree)
+	router.GET(baseURL+"/api/v1/public/getOrder/:id", wrapper.GetOrder)
+	router.GET(baseURL+"/api/v1/public/getProduct/:slug", wrapper.GetProduct)
+	router.GET(baseURL+"/api/v1/public/getProductsList", wrapper.GetProductsList)
+	router.POST(baseURL+"/api/v1/public/uploadProductImage", wrapper.UploadProductImage)
 
 }
