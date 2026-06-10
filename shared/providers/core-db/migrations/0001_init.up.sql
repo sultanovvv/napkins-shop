@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS products
+(
+    id   BIGSERIAL PRIMARY KEY,
+    slug TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL
+);

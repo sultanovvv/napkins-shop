@@ -4,9 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
@@ -14,12 +11,19 @@ import (
 	"time"
 
 	"github.com/brpaz/echozap"
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
+	"github.com/minio/minio-go/v7"
+	"github.com/uptrace/bun"
+	"go.uber.org/fx"
+	"go.uber.org/zap"
 
 	"napkins-shop/public-executor/bootstrap/config"
+	"napkins-shop/public-executor/bootstrap/storage"
 	"napkins-shop/public-executor/internal/definition"
 	"napkins-shop/public-executor/internal/utils/logger"
 
-	"github.com/labstack/echo/v4/middleware"
+	core_db "shared/providers/core-db"
 )
 
 const shutdownTimeout = 10 * time.Second
@@ -27,7 +31,6 @@ const shutdownTimeout = 10 * time.Second
 type App struct {
 	Logger *zap.Logger
 	Config *config.AppConfig
-	//DB     *sqlx.DB
 }
 
 func NewApp(configPath string) (*App, error) {
@@ -35,19 +38,9 @@ func NewApp(configPath string) (*App, error) {
 	cfg := config.NewAppConfig()
 	log := logger.NewLogger()
 
-	var (
-	//err error
-	//db  *sqlx.DB
-	)
-	//if db, err = database.NewConnect(cfg.Database(), log); err != nil {
-	//	log.Panic("Error connecting to Postgres", zap.String("host", cfg.Database().Host), zap.Error(err))
-	//	return nil, err
-	//}
-
 	return &App{
 		Logger: log,
 		Config: cfg,
-		//DB:     db,
 	}, nil
 }
 
@@ -55,17 +48,30 @@ func (app *App) Start() error {
 	fxApp := fx.New(
 		fx.Provide(func() *config.AppConfig { return app.Config }),
 		fx.Provide(func() *zap.Logger { return app.Logger }),
-		//fx.Provide(func() *sqlx.DB { return app.DB }),
+
+		// БД: подключение поднимаем через shared, дальше упаковываем в
+		// Connection и раздаём IBaseProvider / ITransactionProvider —
+		// чтобы новые сервисы (admin) использовали ровно ту же обвязку.
+		fx.Provide(func() (*bun.DB, error) {
+			return core_db.InitDatabase(*app.Config.Database())
+		}),
+		fx.Provide(core_db.NewConnection),
+		fx.Provide(core_db.NewBaseProvider),
+		fx.Provide(core_db.NewTransactionProvider),
+
+		fx.Provide(func() (*minio.Client, error) {
+			return storage.NewMinioClient(app.Config)
+		}),
 		fx.Provide(func() *echo.Echo {
 			e := echo.New()
 			e.Use(echozap.ZapLogger(app.Logger))
 			e.Use(middleware.RequestID())
-
+			e.Use(middleware.CORS())
 			e.Use(middleware.Recover())
 
 			return e
 		}),
-		definition.NewOption(), // подключает зависимости и route для работы с бизнес логикой приложения
+		definition.NewOption(),
 		fx.Invoke(app.startHTTPServer),
 	)
 
@@ -94,10 +100,6 @@ func (app *App) startHTTPServer(lifecycle fx.Lifecycle, e *echo.Echo) {
 					return c.NoContent(http.StatusOK)
 				})
 				e.GET("/readiness", func(c echo.Context) error {
-					//if err := app.DB.Ping(); err != nil {
-					//	return c.NoContent(http.StatusServiceUnavailable)
-					//}
-
 					return c.NoContent(http.StatusOK)
 				})
 

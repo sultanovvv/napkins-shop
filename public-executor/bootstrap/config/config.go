@@ -4,17 +4,24 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
+
+	"shared/configs/http_server"
+	"shared/configs/postgres"
+	"shared/configs/s3"
 )
 
+// AppConfig — узкий wrapper над тремя секциями shared-конфигов.
+// Содержимое каждой секции живёт в shared/, чтобы admin и другие сервисы
+// могли импортировать ровно те же типы.
 type AppConfig struct {
-	dbConfig   DBConfig
-	httpConfig httpConfig
-	S3Config   s3
+	db   postgres.Config
+	http http_server.Config
+	s3   s3.Config
 }
 
 func NewAppConfig() *AppConfig {
 	return &AppConfig{
-		dbConfig: DBConfig{
+		db: postgres.Config{
 			Host:            viper.GetString("DATABASE_HOST"),
 			Port:            viper.GetInt("DATABASE_PORT"),
 			Name:            viper.GetString("DATABASE_NAME"),
@@ -25,51 +32,21 @@ func NewAppConfig() *AppConfig {
 			MaxIdleConns:    viper.GetInt("DATABASE_MAX_IDLE_CONNS"),
 			ConnMaxLifetime: viper.GetDuration("DATABASE_CONN_MAX_LIFE_TIME") * time.Second,
 		},
-		httpConfig: httpConfig{
+		http: http_server.Config{
 			Host: viper.GetString("HTTP_HOST"),
 			Port: viper.GetInt("HTTP_PORT"),
 		},
-		S3Config: s3{
+		s3: s3.Config{
+			Endpoint:   viper.GetString("S3_ENDPOINT"),
+			UseSSL:     viper.GetBool("S3_USE_SSL"),
+			Region:     viper.GetString("S3_REGION"),
+			BucketName: viper.GetString("S3_BUCKET_NAME"),
 			AccessKey:  viper.GetString("S3_ACCESS_KEY"),
 			SecretKey:  viper.GetString("S3_SECRET_KEY"),
-			Address:    viper.GetString("S3_ADDRESS"),
-			BucketName: viper.GetString("S3_BUCKET_NAME"),
 		},
 	}
 }
 
-type DBConfig struct {
-	Host            string
-	Port            int
-	Name            string
-	User            string
-	Password        string
-	Debug           bool
-	ConnMaxLifetime time.Duration // В секундах
-	MaxOpenConns    int
-	MaxIdleConns    int
-}
-
-type httpConfig struct {
-	Host string
-	Port int
-}
-
-type s3 struct {
-	AccessKey  string
-	SecretKey  string
-	Address    string
-	BucketName string
-}
-
-func (a *AppConfig) Database() *DBConfig {
-	return &a.dbConfig
-}
-
-func (a *AppConfig) HTTP() *httpConfig {
-	return &a.httpConfig
-}
-
-func (a *AppConfig) S3() *s3 {
-	return &a.S3Config
-}
+func (a *AppConfig) Database() *postgres.Config { return &a.db }
+func (a *AppConfig) HTTP() *http_server.Config  { return &a.http }
+func (a *AppConfig) S3() *s3.Config             { return &a.s3 }

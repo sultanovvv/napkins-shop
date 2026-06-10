@@ -2,81 +2,392 @@ openapi: "3.0.0"
 info:
   version: 1.0.0
   title: Decoupage Napkins Shop API server
+
 paths:
-  /getProductsList:
-    get:
-      tags:
-        - Products
-      operationId: getProductsList
-      description: 'Получить список доступных продуктов'
+  /createOrder:
+    post:
+      tags: [Orders]
+      operationId: createOrder
+      description: 'Оформить заказ'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateOrderRequest'
       responses:
         '200':
-          description: 'Положительный ответ'
+          description: 'Заказ создан'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /getOrder/{id}:
+    get:
+      tags: [Orders]
+      operationId: getOrder
+      description: 'Получить заказ по ID'
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /getProduct/{slug}:
+    get:
+      tags: [Products]
+      operationId: getProduct
+      description: 'Получить карточку товара по slug'
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /getProductsList:
+    get:
+      tags: [Products]
+      operationId: getProductsList
+      description: 'Список товаров (опционально с фильтром по slug категории)'
+      parameters:
+        - name: category
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 'slug категории; вернётся пустой список, если категория неизвестна'
+      responses:
+        '200':
+          description: 'OK'
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetProductListResponse'
         '400':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorModel'
           description: Bad Request
-
-        '500':
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+        '500':
           description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /getCategoriesTree:
+    get:
+      tags: [Categories]
+      operationId: getCategoriesTree
+      description: 'Двухуровневое дерево категорий: корни + их дочерние'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCategoriesTreeResponse'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /uploadProductImage:
+    post:
+      tags: [Products]
+      operationId: uploadProductImage
+      description: 'Загрузить картинку товара в S3 и сохранить ссылку'
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, productSlug]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                productSlug:
+                  type: string
+                isPrimary:
+                  type: boolean
+                sortOrder:
+                  type: integer
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadProductImageResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '500':
+          description: Internal Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
 
 components:
   schemas:
     GetProductListResponse:
       type: object
-      required:
-        - items
-        - totalCount
+      required: [items, totalCount]
       properties:
         items:
           type: array
           items:
             $ref: '#/components/schemas/Product'
         totalCount:
-          type: number
-
+          type: integer
 
     Product:
       type: object
-      required:
-        - id
-        - name
-        - attributes
+      required: [id, slug, name, attributes, images]
       properties:
         id:
+          type: integer
+          format: int64
+        slug:
           type: string
-          format: uuid
         name:
           type: string
         attributes:
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/ProductAttributeValue'
+        images:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProductImage'
+        category:
+          $ref: '#/components/schemas/CategoryRef'
+
+    ProductImage:
+      type: object
+      required: [url, isPrimary, sortOrder]
+      properties:
+        url:
+          type: string
+        isPrimary:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    UploadProductImageResponse:
+      type: object
+      required: [id, key, url, isPrimary, sortOrder]
+      properties:
+        id:
+          type: integer
+          format: int64
+        key:
+          type: string
+        url:
+          type: string
+        isPrimary:
+          type: boolean
+        sortOrder:
+          type: integer
+
+    CategoryRef:
+      type: object
+      nullable: true
+      required: [id, slug, name]
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+
+    Attribute:
+      type: object
+      required: [id, slug, name, valueType, sortOrder]
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        valueType:
+          type: string
+          enum: [string, int]
+        sortOrder:
+          type: integer
+
+    ProductAttributeValue:
+      type: object
+      required: [attribute]
+      properties:
+        attribute:
+          $ref: '#/components/schemas/Attribute'
+        valueText:
+          type: string
+          nullable: true
+        valueInt:
+          type: integer
+          nullable: true
+
+    GetCategoriesTreeResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+
+    CategoryNode:
+      type: object
+      required: [id, slug, name, sortOrder, children]
+      properties:
+        id:
+          type: integer
+          format: int64
+        slug:
+          type: string
+        name:
+          type: string
+        sortOrder:
+          type: integer
+        children:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+
+    CreateOrderRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemInput'
+
+    OrderItemInput:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    OrderResponse:
+      type: object
+      required: [id, items, status, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItemResponse'
+        status:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    OrderItemResponse:
+      type: object
+      required: [productId, name, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        name:
+          type: string
+        quantity:
+          type: integer
 
     ErrorModel:
       type: object
-      required:
-        - error
+      required: [error]
       properties:
         error:
           $ref: '#/components/schemas/ErrorDetailsModel'
 
     ErrorDetailsModel:
       type: object
-      required:
-        - code
-        - message
-        - details
+      required: [code, message, details]
       properties:
         code:
           type: string
