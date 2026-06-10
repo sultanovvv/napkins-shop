@@ -21,7 +21,7 @@ func NewCategoryHandler(categoryUseCase categoryusecase.ICategoryUseCases, logge
 }
 
 func (h CategoryHandler) GetCategoriesTree(ctx echo.Context) error {
-	tree, err := h.categoryUseCase.GetTree()
+	tree, err := h.categoryUseCase.GetTree(ctx.Request().Context())
 	if err != nil {
 		h.logger.Error("GetCategoriesTree failed", zap.Error(err))
 		return ctx.JSON(500, api.ErrorModel{

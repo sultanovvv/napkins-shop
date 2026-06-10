@@ -1,42 +1,41 @@
 package category
 
 import (
+	"context"
 	"errors"
 
 	"go.uber.org/zap"
 
-	categoryrepo "napkins-shop/public-executor/internal/repository/category"
 	"shared/entity"
+	core_db "shared/providers/core-db"
 )
 
 var ErrNotFound = errors.New("category not found")
 
 type ICategoryUseCases interface {
-	GetTree() ([]entity.Category, error)
-	GetBySlug(slug string) (*entity.Category, error)
-	GetByID(id int64) (*entity.Category, error)
-	List() ([]entity.Category, error)
+	GetTree(ctx context.Context) ([]entity.Category, error)
+	GetBySlug(ctx context.Context, slug string) (*entity.Category, error)
+	GetByID(ctx context.Context, id int64) (*entity.Category, error)
+	List(ctx context.Context) ([]entity.Category, error)
 }
 
 type useCases struct {
-	logger *zap.Logger
-	repo   categoryrepo.ICategoryRepository
+	logger   *zap.Logger
+	provider core_db.ICategoryProvider
 }
 
-func NewUseCase(repo categoryrepo.ICategoryRepository, logger *zap.Logger) ICategoryUseCases {
-	return &useCases{repo: repo, logger: logger}
+func NewUseCase(provider core_db.ICategoryProvider, logger *zap.Logger) ICategoryUseCases {
+	return &useCases{provider: provider, logger: logger}
 }
 
-func (u *useCases) GetTree() ([]entity.Category, error) {
-	rows, err := u.repo.List()
+func (u *useCases) GetTree(ctx context.Context) ([]entity.Category, error) {
+	rows, err := u.provider.List(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	byID := make(map[int64]*entity.Category, len(rows))
 	for i := range rows {
-		// Копию делаем, чтобы byID указывал на новый аллок, а не на
-		// элемент локального слайса (тот можно затем переиспользовать).
 		c := rows[i]
 		byID[c.ID] = &c
 	}
@@ -50,7 +49,6 @@ func (u *useCases) GetTree() ([]entity.Category, error) {
 		}
 		parent, ok := byID[*rows[i].ParentID]
 		if !ok {
-			// orphaned child — surface it as root so it's not lost
 			roots = append(roots, node)
 			continue
 		}
@@ -64,8 +62,8 @@ func (u *useCases) GetTree() ([]entity.Category, error) {
 	return out, nil
 }
 
-func (u *useCases) GetBySlug(slug string) (*entity.Category, error) {
-	c, err := u.repo.GetBySlug(slug)
+func (u *useCases) GetBySlug(ctx context.Context, slug string) (*entity.Category, error) {
+	c, err := u.provider.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
@@ -75,8 +73,8 @@ func (u *useCases) GetBySlug(slug string) (*entity.Category, error) {
 	return c, nil
 }
 
-func (u *useCases) GetByID(id int64) (*entity.Category, error) {
-	c, err := u.repo.GetByID(id)
+func (u *useCases) GetByID(ctx context.Context, id int64) (*entity.Category, error) {
+	c, err := u.provider.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -86,6 +84,6 @@ func (u *useCases) GetByID(id int64) (*entity.Category, error) {
 	return c, nil
 }
 
-func (u *useCases) List() ([]entity.Category, error) {
-	return u.repo.List()
+func (u *useCases) List(ctx context.Context) ([]entity.Category, error) {
+	return u.provider.List(ctx)
 }

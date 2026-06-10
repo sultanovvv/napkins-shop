@@ -1,56 +1,55 @@
 package product
 
 import (
+	"context"
 	"errors"
 	"sort"
 
 	"go.uber.org/zap"
 
-	productrepo "napkins-shop/public-executor/internal/repository/product"
-	productattrrepo "napkins-shop/public-executor/internal/repository/product_attribute"
-	productimagerepo "napkins-shop/public-executor/internal/repository/product_image"
 	attributeuc "napkins-shop/public-executor/internal/usecases/attribute"
 	categoryuc "napkins-shop/public-executor/internal/usecases/category"
 	"shared/entity"
+	core_db "shared/providers/core-db"
 )
 
 var ErrNotFound = errors.New("product not found")
 
 type IProductUseCases interface {
-	GetProductsList(in GetProductsListInUDTO) ([]entity.Product, error)
-	GetProductBySlug(slug string) (*entity.Product, error)
-	GetProductByID(id int64) (*entity.Product, error)
+	GetProductsList(ctx context.Context, in GetProductsListInUDTO) ([]entity.Product, error)
+	GetProductBySlug(ctx context.Context, slug string) (*entity.Product, error)
+	GetProductByID(ctx context.Context, id int64) (*entity.Product, error)
 }
 
 type useCases struct {
-	logger        *zap.Logger
-	productRepo   productrepo.IProductRepository
-	attrValueRepo productattrrepo.IProductAttributeRepository
-	imageRepo     productimagerepo.IProductImageRepository
-	categoryUC    categoryuc.ICategoryUseCases
-	attributeUC   attributeuc.IAttributeUseCases
+	logger      *zap.Logger
+	productProv core_db.IProductProvider
+	attrValProv core_db.IProductAttributeProvider
+	imageProv   core_db.IProductImageProvider
+	categoryUC  categoryuc.ICategoryUseCases
+	attributeUC attributeuc.IAttributeUseCases
 }
 
 func NewUseCase(
-	productRepo productrepo.IProductRepository,
-	attrValueRepo productattrrepo.IProductAttributeRepository,
-	imageRepo productimagerepo.IProductImageRepository,
+	productProv core_db.IProductProvider,
+	attrValProv core_db.IProductAttributeProvider,
+	imageProv core_db.IProductImageProvider,
 	categoryUC categoryuc.ICategoryUseCases,
 	attributeUC attributeuc.IAttributeUseCases,
 	logger *zap.Logger,
 ) IProductUseCases {
 	return &useCases{
-		productRepo:   productRepo,
-		attrValueRepo: attrValueRepo,
-		imageRepo:     imageRepo,
-		categoryUC:    categoryUC,
-		attributeUC:   attributeUC,
-		logger:        logger,
+		productProv: productProv,
+		attrValProv: attrValProv,
+		imageProv:   imageProv,
+		categoryUC:  categoryUC,
+		attributeUC: attributeUC,
+		logger:      logger,
 	}
 }
 
-func (u *useCases) GetProductsList(in GetProductsListInUDTO) ([]entity.Product, error) {
-	rows, err := u.productRepo.List(productrepo.ListFilter{CategorySlug: in.CategorySlug})
+func (u *useCases) GetProductsList(ctx context.Context, in GetProductsListInUDTO) ([]entity.Product, error) {
+	rows, err := u.productProv.List(ctx, core_db.ProductListFilter{CategorySlug: in.CategorySlug})
 	if err != nil {
 		return nil, err
 	}
@@ -58,11 +57,11 @@ func (u *useCases) GetProductsList(in GetProductsListInUDTO) ([]entity.Product, 
 		return []entity.Product{}, nil
 	}
 
-	catByID, err := u.categoriesByID()
+	catByID, err := u.categoriesByID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	attrByID, err := u.attributesByID()
+	attrByID, err := u.attributesByID(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -71,13 +70,13 @@ func (u *useCases) GetProductsList(in GetProductsListInUDTO) ([]entity.Product, 
 	for i, r := range rows {
 		ids[i] = r.ID
 	}
-	values, err := u.attrValueRepo.ListByProducts(ids)
+	values, err := u.attrValProv.ListByProducts(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
 	valuesByProduct := groupAttributes(values, attrByID)
 
-	images, err := u.imageRepo.ListByProducts(ids)
+	images, err := u.imageProv.ListByProducts(ctx, ids)
 	if err != nil {
 		return nil, err
 	}
@@ -90,42 +89,42 @@ func (u *useCases) GetProductsList(in GetProductsListInUDTO) ([]entity.Product, 
 	return out, nil
 }
 
-func (u *useCases) GetProductBySlug(slug string) (*entity.Product, error) {
-	row, err := u.productRepo.GetBySlug(slug)
+func (u *useCases) GetProductBySlug(ctx context.Context, slug string) (*entity.Product, error) {
+	row, err := u.productProv.GetBySlug(ctx, slug)
 	if err != nil {
 		return nil, err
 	}
 	if row == nil {
 		return nil, ErrNotFound
 	}
-	return u.hydrate(*row)
+	return u.hydrate(ctx, *row)
 }
 
-func (u *useCases) GetProductByID(id int64) (*entity.Product, error) {
-	row, err := u.productRepo.GetByID(id)
+func (u *useCases) GetProductByID(ctx context.Context, id int64) (*entity.Product, error) {
+	row, err := u.productProv.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	if row == nil {
 		return nil, ErrNotFound
 	}
-	return u.hydrate(*row)
+	return u.hydrate(ctx, *row)
 }
 
-func (u *useCases) hydrate(p entity.Product) (*entity.Product, error) {
-	catByID, err := u.categoriesByID()
+func (u *useCases) hydrate(ctx context.Context, p entity.Product) (*entity.Product, error) {
+	catByID, err := u.categoriesByID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	attrByID, err := u.attributesByID()
+	attrByID, err := u.attributesByID(ctx)
 	if err != nil {
 		return nil, err
 	}
-	values, err := u.attrValueRepo.ListByProduct(p.ID)
+	values, err := u.attrValProv.ListByProduct(ctx, p.ID)
 	if err != nil {
 		return nil, err
 	}
-	images, err := u.imageRepo.ListByProduct(p.ID)
+	images, err := u.imageProv.ListByProduct(ctx, p.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -133,8 +132,8 @@ func (u *useCases) hydrate(p entity.Product) (*entity.Product, error) {
 	return &out, nil
 }
 
-func (u *useCases) categoriesByID() (map[int64]*entity.Category, error) {
-	cats, err := u.categoryUC.List()
+func (u *useCases) categoriesByID(ctx context.Context) (map[int64]*entity.Category, error) {
+	cats, err := u.categoryUC.List(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -146,8 +145,8 @@ func (u *useCases) categoriesByID() (map[int64]*entity.Category, error) {
 	return out, nil
 }
 
-func (u *useCases) attributesByID() (map[int64]entity.Attribute, error) {
-	attrs, err := u.attributeUC.List()
+func (u *useCases) attributesByID(ctx context.Context) (map[int64]entity.Attribute, error) {
+	attrs, err := u.attributeUC.List(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -1,39 +1,38 @@
-package s3url
+package s3storage
 
 import (
 	"fmt"
 	"strings"
 
-	"napkins-shop/public-executor/configs"
+	"shared/configs/s3"
 )
 
-// Builder превращает S3-ключ объекта в публичный URL вида
+// IURLBuilder превращает S3-ключ объекта в публичный URL вида
 // {http|https}://{endpoint}/{bucket}/{key}. Подходит для path-style доступа,
 // который поддерживают и MinIO, и Yandex Object Storage.
-type Builder interface {
+type IURLBuilder interface {
 	URL(key string) string
 }
 
-type builder struct {
+type urlBuilder struct {
 	scheme   string
 	endpoint string
 	bucket   string
 }
 
-func NewBuilder(cfg *configs.AppConfig) Builder {
-	s3 := cfg.S3
+func NewURLBuilder(cfg s3.Config) IURLBuilder {
 	scheme := "http"
-	if s3.UseSSL {
+	if cfg.UseSSL {
 		scheme = "https"
 	}
-	return &builder{
+	return &urlBuilder{
 		scheme:   scheme,
-		endpoint: strings.TrimSuffix(s3.Endpoint, "/"),
-		bucket:   s3.BucketName,
+		endpoint: strings.TrimSuffix(cfg.Endpoint, "/"),
+		bucket:   cfg.BucketName,
 	}
 }
 
-func (b *builder) URL(key string) string {
+func (b *urlBuilder) URL(key string) string {
 	if key == "" || b.bucket == "" || b.endpoint == "" {
 		return ""
 	}

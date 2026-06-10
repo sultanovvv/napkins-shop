@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 
 	"napkins-shop/public-executor/internal/api"
-	"napkins-shop/public-executor/internal/storage/s3url"
 	"napkins-shop/public-executor/internal/usecases/product"
 	productimageuc "napkins-shop/public-executor/internal/usecases/product_image"
+	"shared/providers/s3storage"
 )
 
 const maxUploadBytes = 10 << 20 // 10 MiB
@@ -25,7 +25,7 @@ type ProductHandler struct {
 func NewProductHandler(
 	productUseCase product.IProductUseCases,
 	uploader productimageuc.IUploader,
-	urls s3url.Builder,
+	urls s3storage.IURLBuilder,
 	logger *zap.Logger,
 ) *ProductHandler {
 	return &ProductHandler{
@@ -37,7 +37,7 @@ func NewProductHandler(
 }
 
 func (h ProductHandler) GetProduct(ctx echo.Context, slug string) error {
-	p, err := h.productUseCase.GetProductBySlug(slug)
+	p, err := h.productUseCase.GetProductBySlug(ctx.Request().Context(), slug)
 	if err != nil {
 		if errors.Is(err, product.ErrNotFound) {
 			return ctx.JSON(http.StatusNotFound, api.ErrorModel{
@@ -61,7 +61,7 @@ func (h ProductHandler) GetProductsList(ctx echo.Context, params api.GetProducts
 		in.CategorySlug = *params.Category
 	}
 
-	items, err := h.productUseCase.GetProductsList(in)
+	items, err := h.productUseCase.GetProductsList(ctx.Request().Context(), in)
 	if err != nil {
 		h.logger.Error("GetProductsList failed", zap.Error(err))
 		return internalErr(ctx)

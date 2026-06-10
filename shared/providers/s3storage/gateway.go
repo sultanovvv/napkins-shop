@@ -1,4 +1,4 @@
-package s3gateway
+package s3storage
 
 import (
 	"context"
@@ -7,12 +7,12 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	"napkins-shop/public-executor/configs"
+	"shared/configs/s3"
 )
 
-// Gateway — обёртка над minio.Client с предзаданным бакетом. Не делает
+// IGateway — обёртка над minio.Client с предзаданным бакетом. Не делает
 // public-read sign — бакет настроен на анонимный download через mc.
-type Gateway interface {
+type IGateway interface {
 	Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error
 	Delete(ctx context.Context, key string) error
 }
@@ -22,16 +22,16 @@ type gateway struct {
 	bucket string
 }
 
-func NewGateway(cfg *configs.AppConfig, client *minio.Client) Gateway {
+func NewGateway(cfg s3.Config, client *minio.Client) IGateway {
 	return &gateway{
 		client: client,
-		bucket: cfg.S3.BucketName,
+		bucket: cfg.BucketName,
 	}
 }
 
 func (g *gateway) Put(ctx context.Context, key string, r io.Reader, size int64, contentType string) error {
 	if g.bucket == "" {
-		return fmt.Errorf("s3gateway: bucket not configured")
+		return fmt.Errorf("s3storage: bucket not configured")
 	}
 	_, err := g.client.PutObject(ctx, g.bucket, key, r, size, minio.PutObjectOptions{
 		ContentType: contentType,
@@ -41,7 +41,7 @@ func (g *gateway) Put(ctx context.Context, key string, r io.Reader, size int64, 
 
 func (g *gateway) Delete(ctx context.Context, key string) error {
 	if g.bucket == "" {
-		return fmt.Errorf("s3gateway: bucket not configured")
+		return fmt.Errorf("s3storage: bucket not configured")
 	}
 	return g.client.RemoveObject(ctx, g.bucket, key, minio.RemoveObjectOptions{})
 }

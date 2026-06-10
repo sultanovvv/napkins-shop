@@ -27,9 +27,8 @@ type AttributeValue struct {
 	ValueInt  *int
 }
 
-// AttributeValueRow — сырая строка product_attribute_values. Возвращается
-// репозиторием; usecase резолвит ID атрибута в Attribute и собирает
-// AttributeValue.
+// AttributeValueRow — сырая связка product/attribute/value. Провайдер
+// отдаёт это; usecase резолвит AttributeID → Attribute и собирает AttributeValue.
 type AttributeValueRow struct {
 	ProductID   int64
 	AttributeID int64

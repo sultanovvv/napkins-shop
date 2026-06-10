@@ -35,7 +35,7 @@ func (h OrderHandler) CreateOrder(ctx echo.Context) error {
 		})
 	}
 
-	order, err := h.orderUseCase.CreateOrder(toCreateOrderInput(body))
+	order, err := h.orderUseCase.CreateOrder(ctx.Request().Context(), toCreateOrderInput(body))
 	if err != nil {
 		if errors.Is(err, orderusecase.ErrProductNotFound) {
 			return ctx.JSON(400, api.ErrorModel{
@@ -52,7 +52,7 @@ func (h OrderHandler) CreateOrder(ctx echo.Context) error {
 }
 
 func (h OrderHandler) GetOrder(ctx echo.Context, id int64) error {
-	order, err := h.orderUseCase.GetOrder(id)
+	order, err := h.orderUseCase.GetOrder(ctx.Request().Context(), id)
 	if err != nil {
 		if errors.Is(err, orderusecase.ErrNotFound) {
 			return ctx.JSON(404, api.ErrorModel{

@@ -2,15 +2,15 @@ package product
 
 import (
 	"napkins-shop/public-executor/internal/api"
-	"napkins-shop/public-executor/internal/storage/s3url"
 	"shared/entity"
+	"shared/providers/s3storage"
 )
 
 type dto struct {
-	urls s3url.Builder
+	urls s3storage.IURLBuilder
 }
 
-func newDTO(urls s3url.Builder) dto { return dto{urls: urls} }
+func newDTO(urls s3storage.IURLBuilder) dto { return dto{urls: urls} }
 
 func (d dto) product(p *entity.Product) api.Product {
 	out := api.Product{

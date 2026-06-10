@@ -12,15 +12,14 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/uptrace/bun"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
 
 	"napkins-shop/public-executor/configs"
-	"napkins-shop/public-executor/internal/utils/logger"
-
 	core_db "shared/providers/core-db"
+	"shared/providers/s3storage"
+	"shared/utils"
 )
 
 type App struct {
@@ -42,7 +41,7 @@ func NewApp() (*App, error) {
 		return nil, err
 	}
 
-	minioClient, err := newMinioClient(cfg)
+	minioClient, err := s3storage.NewClient(*cfg.S3)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +55,7 @@ func NewApp() (*App, error) {
 		minio:   minioClient,
 		appConf: cfg,
 		server:  server,
-		logger:  logger.NewLogger(),
+		logger:  utils.NewLogger(),
 	}, nil
 }
 
@@ -128,20 +127,4 @@ func (a *App) start(lifecycle fx.Lifecycle, e *echo.Echo) {
 			return nil
 		},
 	})
-}
-
-func newMinioClient(cfg *configs.AppConfig) (*minio.Client, error) {
-	s3 := cfg.S3
-	if s3 == nil || s3.Endpoint == "" {
-		return nil, fmt.Errorf("s3.endpoint is empty")
-	}
-	cli, err := minio.New(s3.Endpoint, &minio.Options{
-		Creds:  credentials.NewStaticV4(s3.AccessKey, s3.SecretKey, ""),
-		Secure: s3.UseSSL,
-		Region: s3.Region,
-	})
-	if err != nil {
-		return nil, fmt.Errorf("minio.New: %w", err)
-	}
-	return cli, nil
 }

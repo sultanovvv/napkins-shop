@@ -1,46 +1,46 @@
 package order
 
 import (
+	"context"
 	"errors"
 	"time"
 
 	"go.uber.org/zap"
 
-	orderrepo "napkins-shop/public-executor/internal/repository/order"
-	productrepo "napkins-shop/public-executor/internal/repository/product"
 	"shared/entity"
+	core_db "shared/providers/core-db"
 )
 
 var ErrNotFound = errors.New("order not found")
 var ErrProductNotFound = errors.New("product not found")
 
 type IOrderUseCases interface {
-	CreateOrder(in CreateOrderInUDTO) (*entity.Order, error)
-	GetOrder(id int64) (*entity.Order, error)
+	CreateOrder(ctx context.Context, in CreateOrderInUDTO) (*entity.Order, error)
+	GetOrder(ctx context.Context, id int64) (*entity.Order, error)
 }
 
 type useCases struct {
 	logger      *zap.Logger
-	orderRepo   orderrepo.IOrderRepository
-	productRepo productrepo.IProductRepository
+	orderProv   core_db.IOrderProvider
+	productProv core_db.IProductProvider
 }
 
 func NewUseCase(
-	orderRepo orderrepo.IOrderRepository,
-	productRepo productrepo.IProductRepository,
+	orderProv core_db.IOrderProvider,
+	productProv core_db.IProductProvider,
 	logger *zap.Logger,
 ) IOrderUseCases {
 	return &useCases{
 		logger:      logger,
-		orderRepo:   orderRepo,
-		productRepo: productRepo,
+		orderProv:   orderProv,
+		productProv: productProv,
 	}
 }
 
-func (u *useCases) CreateOrder(in CreateOrderInUDTO) (*entity.Order, error) {
+func (u *useCases) CreateOrder(ctx context.Context, in CreateOrderInUDTO) (*entity.Order, error) {
 	items := make([]entity.OrderItem, 0, len(in.Items))
 	for _, it := range in.Items {
-		p, err := u.productRepo.GetByID(it.ProductID)
+		p, err := u.productProv.GetByID(ctx, it.ProductID)
 		if err != nil || p == nil {
 			return nil, ErrProductNotFound
 		}
@@ -51,15 +51,15 @@ func (u *useCases) CreateOrder(in CreateOrderInUDTO) (*entity.Order, error) {
 		})
 	}
 
-	return u.orderRepo.Create(entity.Order{
+	return u.orderProv.Create(ctx, entity.Order{
 		Items:     items,
 		Status:    "pending",
 		CreatedAt: time.Now(),
 	})
 }
 
-func (u *useCases) GetOrder(id int64) (*entity.Order, error) {
-	o, err := u.orderRepo.GetByID(id)
+func (u *useCases) GetOrder(ctx context.Context, id int64) (*entity.Order, error) {
+	o, err := u.orderProv.GetByID(ctx, id)
 	if err != nil {
 		return nil, ErrNotFound
 	}

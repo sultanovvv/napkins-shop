@@ -1,6 +1,6 @@
 package entity
 
-// Category — узел каталога. Children заполняется только в построении дерева
+// Category — узел каталога. Children заполняется только при построении дерева
 // (см. usecase GetTree). На листьях Children — пустой слайс.
 type Category struct {
 	ID        int64

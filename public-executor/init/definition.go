@@ -16,21 +16,15 @@ import (
 	orderentry "napkins-shop/public-executor/internal/entrypoints/http/order"
 	productentry "napkins-shop/public-executor/internal/entrypoints/http/product"
 	"napkins-shop/public-executor/internal/middlewares"
-	attributerepo "napkins-shop/public-executor/internal/repository/attribute"
-	categoryrepo "napkins-shop/public-executor/internal/repository/category"
-	orderrepo "napkins-shop/public-executor/internal/repository/order"
-	productrepo "napkins-shop/public-executor/internal/repository/product"
-	productattrrepo "napkins-shop/public-executor/internal/repository/product_attribute"
-	productimagerepo "napkins-shop/public-executor/internal/repository/product_image"
-	"napkins-shop/public-executor/internal/storage/s3gateway"
-	"napkins-shop/public-executor/internal/storage/s3url"
 	attributeuc "napkins-shop/public-executor/internal/usecases/attribute"
 	categoryuc "napkins-shop/public-executor/internal/usecases/category"
 	orderuc "napkins-shop/public-executor/internal/usecases/order"
 	productuc "napkins-shop/public-executor/internal/usecases/product"
 	productimageuc "napkins-shop/public-executor/internal/usecases/product_image"
 
+	"shared/configs/s3"
 	core_db "shared/providers/core-db"
+	"shared/providers/s3storage"
 )
 
 func Infrastructure(a *App) fx.Option {
@@ -42,6 +36,7 @@ func Infrastructure(a *App) fx.Option {
 		fx.Provide(func() *minio.Client { return a.minio }),
 		fx.Provide(func() *bun.DB { return a.db }),
 		fx.Provide(func() *core_db.Connection { return core_db.NewConnection(a.db) }),
+		fx.Provide(func() s3.Config { return *a.appConf.S3 }),
 		fx.Provide(func() *http.Client { return &http.Client{} }),
 	)
 }
@@ -49,21 +44,19 @@ func Infrastructure(a *App) fx.Option {
 func Providers() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			// shared providers (core-db)
+			// shared core-db providers
 			core_db.NewBaseProvider,
 			core_db.NewTransactionProvider,
+			core_db.NewProductProvider,
+			core_db.NewCategoryProvider,
+			core_db.NewAttributeProvider,
+			core_db.NewProductAttributeProvider,
+			core_db.NewProductImageProvider,
+			core_db.NewOrderProvider,
 
-			// storage
-			s3url.NewBuilder,
-			s3gateway.NewGateway,
-
-			// repositories
-			productrepo.NewPostgresRepository,
-			categoryrepo.NewPostgresRepository,
-			attributerepo.NewPostgresRepository,
-			productattrrepo.NewPostgresRepository,
-			productimagerepo.NewPostgresRepository,
-			func() orderrepo.IOrderRepository { return orderrepo.NewMockRepository() },
+			// shared s3 providers
+			s3storage.NewURLBuilder,
+			s3storage.NewGateway,
 
 			// usecases
 			categoryuc.NewUseCase,

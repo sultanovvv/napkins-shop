@@ -9,11 +9,9 @@ import (
 
 	"go.uber.org/zap"
 
-	productrepo "napkins-shop/public-executor/internal/repository/product"
-	productimagerepo "napkins-shop/public-executor/internal/repository/product_image"
-	"napkins-shop/public-executor/internal/storage/s3gateway"
-	"napkins-shop/public-executor/internal/storage/s3url"
 	"shared/entity"
+	core_db "shared/providers/core-db"
+	"shared/providers/s3storage"
 )
 
 var (
@@ -37,23 +35,23 @@ type IUploader interface {
 
 type uploader struct {
 	logger      *zap.Logger
-	productRepo productrepo.IProductRepository
-	imageRepo   productimagerepo.IProductImageRepository
-	gateway     s3gateway.Gateway
-	urls        s3url.Builder
+	productProv core_db.IProductProvider
+	imageProv   core_db.IProductImageProvider
+	gateway     s3storage.IGateway
+	urls        s3storage.IURLBuilder
 }
 
 func NewUploader(
-	productRepo productrepo.IProductRepository,
-	imageRepo productimagerepo.IProductImageRepository,
-	gateway s3gateway.Gateway,
-	urls s3url.Builder,
+	productProv core_db.IProductProvider,
+	imageProv core_db.IProductImageProvider,
+	gateway s3storage.IGateway,
+	urls s3storage.IURLBuilder,
 	logger *zap.Logger,
 ) IUploader {
 	return &uploader{
 		logger:      logger,
-		productRepo: productRepo,
-		imageRepo:   imageRepo,
+		productProv: productProv,
+		imageProv:   imageProv,
 		gateway:     gateway,
 		urls:        urls,
 	}
@@ -64,7 +62,7 @@ func (u *uploader) Upload(ctx context.Context, in UploadInUDTO) (*UploadResult, 
 		return nil, ErrInvalidImage
 	}
 
-	product, err := u.productRepo.GetBySlug(in.ProductSlug)
+	product, err := u.productProv.GetBySlug(ctx, in.ProductSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -79,7 +77,7 @@ func (u *uploader) Upload(ctx context.Context, in UploadInUDTO) (*UploadResult, 
 	}
 
 	if in.IsPrimary {
-		if err := u.imageRepo.ClearPrimary(product.ID); err != nil {
+		if err := u.imageProv.ClearPrimary(ctx, product.ID); err != nil {
 			// Откатим только что залитый объект, чтобы не оставлять
 			// «висячую» картинку в бакете без записи в БД.
 			_ = u.gateway.Delete(ctx, key)
@@ -93,7 +91,7 @@ func (u *uploader) Upload(ctx context.Context, in UploadInUDTO) (*UploadResult, 
 		SortOrder: in.SortOrder,
 		IsPrimary: in.IsPrimary,
 	}
-	if err := u.imageRepo.Insert(img); err != nil {
+	if err := u.imageProv.Insert(ctx, img); err != nil {
 		_ = u.gateway.Delete(ctx, key)
 		return nil, fmt.Errorf("insert image row: %w", err)
 	}

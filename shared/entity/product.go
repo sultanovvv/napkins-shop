@@ -5,9 +5,9 @@ import "time"
 // Product — основная сущность каталога.
 //
 // Поля CategoryID/Category, Attributes, Images заполняются разными слоями:
-// репозиторий кладёт raw-данные (CategoryID), usecase подмешивает
-// связанные сущности (Category, Attributes, Images). Поэтому пустой слайс
-// или nil в составных полях — это "ещё не собрали", а не "нет данных".
+// провайдер кладёт raw-данные (CategoryID), usecase подмешивает связанные
+// сущности (Category, Attributes, Images). Поэтому пустой слайс или nil
+// в составных полях — это "ещё не собрали", а не "нет данных".
 type Product struct {
 	ID         int64
 	Slug       string
