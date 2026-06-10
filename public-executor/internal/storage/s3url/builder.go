@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"napkins-shop/public-executor/bootstrap/config"
+	"napkins-shop/public-executor/configs"
 )
 
 // Builder превращает S3-ключ объекта в публичный URL вида
@@ -20,8 +20,8 @@ type builder struct {
 	bucket   string
 }
 
-func NewBuilder(cfg *config.AppConfig) Builder {
-	s3 := cfg.S3()
+func NewBuilder(cfg *configs.AppConfig) Builder {
+	s3 := cfg.S3
 	scheme := "http"
 	if s3.UseSSL {
 		scheme = "https"

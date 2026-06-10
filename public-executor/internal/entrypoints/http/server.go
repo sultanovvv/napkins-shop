@@ -4,9 +4,9 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"napkins-shop/public-executor/internal/api"
-	categoryhandler "napkins-shop/public-executor/internal/handler/http/public/category"
-	orderhandler "napkins-shop/public-executor/internal/handler/http/public/order"
-	producthandler "napkins-shop/public-executor/internal/handler/http/public/product"
+	categoryhandler "napkins-shop/public-executor/internal/entrypoints/http/category"
+	orderhandler "napkins-shop/public-executor/internal/entrypoints/http/order"
+	producthandler "napkins-shop/public-executor/internal/entrypoints/http/product"
 )
 
 var _ api.ServerInterface = (*handlerContainer)(nil)
@@ -17,7 +17,9 @@ type handlerContainer struct {
 	*orderhandler.OrderHandler
 }
 
-func RegisterHandlers(
+// Register монтирует все публичные эндпоинты на echo через сгенерированный
+// oapi-codegen ServerInterface.
+func Register(
 	e *echo.Echo,
 	product *producthandler.ProductHandler,
 	category *categoryhandler.CategoryHandler,

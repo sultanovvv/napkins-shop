@@ -9,8 +9,8 @@ import (
 	productrepo "napkins-shop/public-executor/internal/repository/product"
 	productattrrepo "napkins-shop/public-executor/internal/repository/product_attribute"
 	productimagerepo "napkins-shop/public-executor/internal/repository/product_image"
-	attributeuc "napkins-shop/public-executor/internal/usecase/attribute"
-	categoryuc "napkins-shop/public-executor/internal/usecase/category"
+	attributeuc "napkins-shop/public-executor/internal/usecases/attribute"
+	categoryuc "napkins-shop/public-executor/internal/usecases/category"
 	"shared/entity"
 )
 

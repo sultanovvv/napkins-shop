@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 
 	"napkins-shop/public-executor/internal/api"
-	orderusecase "napkins-shop/public-executor/internal/usecase/order"
+	orderusecase "napkins-shop/public-executor/internal/usecases/order"
 )
 
 type OrderHandler struct {

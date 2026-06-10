@@ -7,7 +7,7 @@ import (
 
 	"github.com/minio/minio-go/v7"
 
-	"napkins-shop/public-executor/bootstrap/config"
+	"napkins-shop/public-executor/configs"
 )
 
 // Gateway — обёртка над minio.Client с предзаданным бакетом. Не делает
@@ -22,10 +22,10 @@ type gateway struct {
 	bucket string
 }
 
-func NewGateway(cfg *config.AppConfig, client *minio.Client) Gateway {
+func NewGateway(cfg *configs.AppConfig, client *minio.Client) Gateway {
 	return &gateway{
 		client: client,
-		bucket: cfg.S3().BucketName,
+		bucket: cfg.S3.BucketName,
 	}
 }
 

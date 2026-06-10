@@ -1,4 +1,4 @@
-const API_BASE = process.env.API_BASE_URL ?? 'http://127.0.0.1:9876'
+const API_BASE = process.env.API_BASE_URL ?? 'http://127.0.0.1:9888'
 
 export type AttributeValueType = 'string' | 'int'
 

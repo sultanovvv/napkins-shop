@@ -5,7 +5,7 @@ import (
 	"go.uber.org/zap"
 
 	"napkins-shop/public-executor/internal/api"
-	categoryusecase "napkins-shop/public-executor/internal/usecase/category"
+	categoryusecase "napkins-shop/public-executor/internal/usecases/category"
 )
 
 type CategoryHandler struct {

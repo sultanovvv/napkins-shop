@@ -9,8 +9,8 @@ import (
 
 	"napkins-shop/public-executor/internal/api"
 	"napkins-shop/public-executor/internal/storage/s3url"
-	"napkins-shop/public-executor/internal/usecase/product"
-	productimageuc "napkins-shop/public-executor/internal/usecase/product_image"
+	"napkins-shop/public-executor/internal/usecases/product"
+	productimageuc "napkins-shop/public-executor/internal/usecases/product_image"
 )
 
 const maxUploadBytes = 10 << 20 // 10 MiB

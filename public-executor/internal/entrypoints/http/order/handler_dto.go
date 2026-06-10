@@ -2,7 +2,7 @@ package order
 
 import (
 	"napkins-shop/public-executor/internal/api"
-	orderusecase "napkins-shop/public-executor/internal/usecase/order"
+	orderusecase "napkins-shop/public-executor/internal/usecases/order"
 	"shared/entity"
 )
 
