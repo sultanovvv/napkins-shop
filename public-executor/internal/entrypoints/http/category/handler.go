@@ -3,8 +3,8 @@ package category
 import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"napkins-shop/public-executor/api"
 
-	"napkins-shop/public-executor/internal/api"
 	categoryusecase "napkins-shop/public-executor/internal/usecases/category"
 )
 

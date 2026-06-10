@@ -3,7 +3,7 @@ package models
 import "github.com/uptrace/bun"
 
 // Attribute — bun-модель таблицы attributes. Внутренний тип persistence;
-// провайдер мапит её в entity.Attribute на границе.
+// используется как relation-target в ProductAttributeValue.
 type Attribute struct {
 	bun.BaseModel `bun:"table:attributes,alias:a"`
 
@@ -15,7 +15,8 @@ type Attribute struct {
 }
 
 // ProductAttributeValue — bun-модель таблицы product_attribute_values.
-// Провайдер мапит её в entity.AttributeValueRow.
+// Attribute подгружается через .Relation("AttributeValues.Attribute") в
+// провайдере; на маппере собирается entity.AttributeValue.
 type ProductAttributeValue struct {
 	bun.BaseModel `bun:"table:product_attribute_values"`
 
@@ -23,4 +24,6 @@ type ProductAttributeValue struct {
 	AttributeID int64   `bun:"attribute_id,pk"`
 	ValueText   *string `bun:"value_text"`
 	ValueInt    *int    `bun:"value_int"`
+
+	Attribute *Attribute `bun:"rel:belongs-to,join:attribute_id=id"`
 }

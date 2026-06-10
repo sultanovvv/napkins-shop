@@ -2,11 +2,11 @@ package order
 
 import (
 	"errors"
+	"napkins-shop/public-executor/api"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"napkins-shop/public-executor/internal/api"
 	orderusecase "napkins-shop/public-executor/internal/usecases/order"
 )
 

@@ -2,8 +2,8 @@ package http
 
 import (
 	"github.com/labstack/echo/v4"
+	"napkins-shop/public-executor/api"
 
-	"napkins-shop/public-executor/internal/api"
 	categoryhandler "napkins-shop/public-executor/internal/entrypoints/http/category"
 	orderhandler "napkins-shop/public-executor/internal/entrypoints/http/order"
 	producthandler "napkins-shop/public-executor/internal/entrypoints/http/product"

@@ -16,7 +16,6 @@ import (
 	orderentry "napkins-shop/public-executor/internal/entrypoints/http/order"
 	productentry "napkins-shop/public-executor/internal/entrypoints/http/product"
 	"napkins-shop/public-executor/internal/middlewares"
-	attributeuc "napkins-shop/public-executor/internal/usecases/attribute"
 	categoryuc "napkins-shop/public-executor/internal/usecases/category"
 	orderuc "napkins-shop/public-executor/internal/usecases/order"
 	productuc "napkins-shop/public-executor/internal/usecases/product"
@@ -49,8 +48,6 @@ func Providers() fx.Option {
 			core_db.NewTransactionProvider,
 			core_db.NewProductProvider,
 			core_db.NewCategoryProvider,
-			core_db.NewAttributeProvider,
-			core_db.NewProductAttributeProvider,
 			core_db.NewProductImageProvider,
 			core_db.NewOrderProvider,
 
@@ -60,7 +57,6 @@ func Providers() fx.Option {
 
 			// usecases
 			categoryuc.NewUseCase,
-			attributeuc.NewUseCase,
 			productuc.NewUseCase,
 			productimageuc.NewUploader,
 			orderuc.NewUseCase,

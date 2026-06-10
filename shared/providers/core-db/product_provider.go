@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"errors"
 
+	"github.com/uptrace/bun"
+
 	"shared/configs/postgres"
 	"shared/entity"
 	"shared/providers/core-db/models"
@@ -31,7 +33,7 @@ func NewProductProvider(db postgres.IBaseProvider) IProductProvider {
 
 func (p *productProvider) List(ctx context.Context, filter ProductListFilter) ([]entity.Product, error) {
 	var rows []models.Product
-	q := p.db.Conn(ctx).NewSelect().Model(&rows)
+	q := p.withRelations(p.db.Conn(ctx).NewSelect().Model(&rows))
 	if filter.CategorySlug != "" {
 		q = q.Where(
 			`category_id IN (
@@ -54,7 +56,9 @@ func (p *productProvider) List(ctx context.Context, filter ProductListFilter) ([
 
 func (p *productProvider) GetBySlug(ctx context.Context, slug string) (*entity.Product, error) {
 	row := models.Product{}
-	err := p.db.Conn(ctx).NewSelect().Model(&row).Where("slug = ?", slug).Scan(ctx)
+	err := p.withRelations(p.db.Conn(ctx).NewSelect().Model(&row)).
+		Where("p.slug = ?", slug).
+		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -67,7 +71,9 @@ func (p *productProvider) GetBySlug(ctx context.Context, slug string) (*entity.P
 
 func (p *productProvider) GetByID(ctx context.Context, id int64) (*entity.Product, error) {
 	row := models.Product{}
-	err := p.db.Conn(ctx).NewSelect().Model(&row).Where("id = ?", id).Scan(ctx)
+	err := p.withRelations(p.db.Conn(ctx).NewSelect().Model(&row)).
+		Where("p.id = ?", id).
+		Scan(ctx)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
@@ -78,11 +84,14 @@ func (p *productProvider) GetByID(ctx context.Context, id int64) (*entity.Produc
 	return &e, nil
 }
 
-func productToEntity(r models.Product) entity.Product {
-	return entity.Product{
-		ID:         r.ID,
-		Slug:       r.Slug,
-		Name:       r.Name,
-		CategoryID: r.CategoryID,
-	}
+// withRelations подцепляет Category (belongs-to), Images (has-many с order'ом)
+// и AttributeValues.Attribute (has-many → belongs-to). Bun делает это двумя
+// дополнительными IN-запросами, что заметно дешевле прежних батчей.
+func (p *productProvider) withRelations(q *bun.SelectQuery) *bun.SelectQuery {
+	return q.
+		Relation("Category").
+		Relation("Images", func(q *bun.SelectQuery) *bun.SelectQuery {
+			return q.Order("is_primary DESC", "sort_order", "id")
+		}).
+		Relation("AttributeValues.Attribute")
 }

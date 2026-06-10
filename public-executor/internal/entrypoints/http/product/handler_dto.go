@@ -1,7 +1,7 @@
 package product
 
 import (
-	"napkins-shop/public-executor/internal/api"
+	"napkins-shop/public-executor/api"
 	"shared/entity"
 	"shared/providers/s3storage"
 )

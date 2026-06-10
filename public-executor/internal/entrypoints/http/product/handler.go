@@ -2,12 +2,12 @@ package product
 
 import (
 	"errors"
+	"napkins-shop/public-executor/api"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"napkins-shop/public-executor/internal/api"
 	"napkins-shop/public-executor/internal/usecases/product"
 	productimageuc "napkins-shop/public-executor/internal/usecases/product_image"
 	"shared/providers/s3storage"

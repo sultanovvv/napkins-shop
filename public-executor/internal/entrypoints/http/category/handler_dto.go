@@ -1,7 +1,7 @@
 package category
 
 import (
-	"napkins-shop/public-executor/internal/api"
+	"napkins-shop/public-executor/api"
 	"shared/entity"
 )
 
