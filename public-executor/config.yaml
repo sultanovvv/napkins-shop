@@ -22,16 +22,13 @@ s3:
   secret_key: minioadmin
 
 auth:
-  # HS256 ключ. В проде положить минимум 64 случайных байта (base64), здесь
-  # — заведомо нерабочий placeholder, чтобы любой, кто скопировал dist,
-  # явно его поменял.
-  jwt_secret: "CHANGE_ME_dev_only_jwt_secret_at_least_32_bytes_long"
+  jwt_secret: "dev_only_local_jwt_secret_at_least_32_bytes_long_please"
   access_token_ttl: 15m
-  refresh_token_ttl: 720h    # 30 дней
+  refresh_token_ttl: 720h
   password_reset_ttl: 1h
-  guest_cart_ttl: 4320h      # 180 дней
+  guest_cart_ttl: 4320h
   argon2:
-    memory: 65536            # 64 MiB
+    memory: 65536
     iterations: 3
     parallelism: 2
     salt_len: 16

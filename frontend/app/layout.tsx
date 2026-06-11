@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import { Geist } from 'next/font/google'
 import { Playfair_Display } from 'next/font/google'
 import './globals.css'
+import { AuthProvider } from '@/components/auth-context'
 import { CartProvider } from '@/components/cart-context'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -31,7 +32,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${playfair.variable} bg-background`}
     >
       <body className="font-sans antialiased">
-        <CartProvider>{children}</CartProvider>
+        <AuthProvider>
+          <CartProvider>{children}</CartProvider>
+        </AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

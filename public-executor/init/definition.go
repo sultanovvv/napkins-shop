@@ -12,16 +12,21 @@ import (
 
 	"napkins-shop/public-executor/configs"
 	httpentry "napkins-shop/public-executor/internal/entrypoints/http"
+	authentry "napkins-shop/public-executor/internal/entrypoints/http/auth"
+	cartentry "napkins-shop/public-executor/internal/entrypoints/http/cart"
 	categoryentry "napkins-shop/public-executor/internal/entrypoints/http/category"
 	"napkins-shop/public-executor/internal/entrypoints/http/docs"
 	orderentry "napkins-shop/public-executor/internal/entrypoints/http/order"
 	productentry "napkins-shop/public-executor/internal/entrypoints/http/product"
 	"napkins-shop/public-executor/internal/middlewares"
+	authuc "napkins-shop/public-executor/internal/usecases/auth"
+	cartuc "napkins-shop/public-executor/internal/usecases/cart"
 	categoryuc "napkins-shop/public-executor/internal/usecases/category"
 	orderuc "napkins-shop/public-executor/internal/usecases/order"
 	productuc "napkins-shop/public-executor/internal/usecases/product"
 	productimageuc "napkins-shop/public-executor/internal/usecases/product_image"
 
+	authcfg "shared/configs/auth"
 	"shared/configs/s3"
 	core_db "shared/providers/core-db"
 	"shared/providers/s3storage"
@@ -37,6 +42,8 @@ func Infrastructure(a *App) fx.Option {
 		fx.Provide(func() *bun.DB { return a.db }),
 		fx.Provide(func() *core_db.Connection { return core_db.NewConnection(a.db) }),
 		fx.Provide(func() s3.Config { return *a.appConf.S3 }),
+		fx.Provide(func() *authcfg.Config { return a.appConf.Auth }),
+		fx.Provide(func() authcfg.Argon2Config { return a.appConf.Auth.Argon2 }),
 		fx.Provide(func() *http.Client { return &http.Client{} }),
 	)
 }
@@ -51,21 +58,40 @@ func Providers() fx.Option {
 			core_db.NewCategoryProvider,
 			core_db.NewProductImageProvider,
 			core_db.NewOrderProvider,
+			core_db.NewUserProvider,
+			core_db.NewAuthIdentityProvider,
+			core_db.NewRefreshTokenProvider,
+			core_db.NewPasswordResetProvider,
+			core_db.NewCartProvider,
 
 			// shared s3 providers
 			s3storage.NewURLBuilder,
 			s3storage.NewGateway,
+
+			// auth primitives
+			authuc.NewArgon2Hasher,
+			authuc.NewHS256TokenSigner,
+			authuc.NewLocalIdentityProvider,
+			provideIdentityRegistry,
 
 			// usecases
 			categoryuc.NewUseCase,
 			productuc.NewUseCase,
 			productimageuc.NewUploader,
 			orderuc.NewUseCase,
+			provideCartUseCase,
+			authuc.NewUseCase,
+
+			// middleware
+			middlewares.NewAuthMiddleware,
+			middlewares.NewGuestCartMiddleware,
 
 			// http entrypoints
 			productentry.NewProductHandler,
 			categoryentry.NewCategoryHandler,
 			orderentry.NewOrderHandler,
+			authentry.NewAuthHandler,
+			cartentry.NewCartHandler,
 		),
 		fx.Invoke(
 			middlewares.Register,
@@ -73,4 +99,25 @@ func Providers() fx.Option {
 			docs.Register,
 		),
 	)
+}
+
+// provideIdentityRegistry собирает реестр identity-провайдеров. Сейчас
+// в нём только локальный (email+password). Когда появятся Google/Yandex/VK —
+// добавятся их конструкторы и здесь же укажутся как зависимости.
+func provideIdentityRegistry(local authuc.IIdentityProvider) *authuc.Registry {
+	return authuc.NewRegistry(local)
+}
+
+// provideCartUseCase — отдельная функция, потому что cart-usecase
+// реализует authuc.ICartMerger, и auth-usecase зависит от того же
+// инстанса. fx сам разрулит граф по интерфейсу, если зарегистрировать
+// возвращаемый тип как оба контракта.
+func provideCartUseCase(
+	logger *zap.Logger,
+	tx core_db.ITransactionProvider,
+	cartProv core_db.ICartProvider,
+	productProv core_db.IProductProvider,
+) (cartuc.ICartUseCases, authuc.ICartMerger) {
+	uc := cartuc.NewUseCase(logger, tx, cartProv, productProv)
+	return uc, uc.(authuc.ICartMerger)
 }
