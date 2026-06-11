@@ -1,0 +1,24 @@
+postgres:
+  host: 127.0.0.1
+  port: 15432
+  name: decoupage-napkins
+  user: decoupage-napkins
+  password: "12345678"
+  debug: true
+  max_open_conns: 10
+  max_idle_conns: 10
+  conn_max_lifetime: 180s
+
+http:
+  host: 127.0.0.1
+  port: 9888
+
+s3:
+  endpoint: 127.0.0.1:9000
+  use_ssl: false
+  region: us-east-1
+  bucket_name: napkins-shop
+  access_key: minioadmin
+  secret_key: minioadmin
+
+shutdown_timeout: 10s
