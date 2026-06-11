@@ -40,3 +40,14 @@ type PasswordResetToken struct {
 	UsedAt    *time.Time
 	CreatedAt time.Time
 }
+
+// EmailVerificationToken — одноразовый токен подтверждения email. Тот же
+// паттерн, что и PasswordResetToken: secret в письмо, hash в БД.
+type EmailVerificationToken struct {
+	ID        int64
+	UserID    int64
+	TokenHash string
+	ExpiresAt time.Time
+	UsedAt    *time.Time
+	CreatedAt time.Time
+}

@@ -62,6 +62,7 @@ func Providers() fx.Option {
 			core_db.NewAuthIdentityProvider,
 			core_db.NewRefreshTokenProvider,
 			core_db.NewPasswordResetProvider,
+			core_db.NewEmailVerificationProvider,
 			core_db.NewCartProvider,
 
 			// shared s3 providers

@@ -56,11 +56,18 @@ func Register(
 		guestCartMW.Handle(),
 	))
 
-	// RequireUser — только на /auth/logoutAll. Расширять по мере появления
-	// приватных операций (например, /me, /orders/myOrders).
+	// RequireUser — на путях, где обязателен залогиненный пользователь.
+	// Список расширять по мере появления приватных операций (например,
+	// /orders/myOrders).
+	requireUserPaths := map[string]struct{}{
+		"/api/v1/public/auth/logoutAll":               {},
+		"/api/v1/public/auth/me":                      {},
+		"/api/v1/public/auth/requestEmailVerification": {},
+	}
 	e.Use(middlewares.WithSkipper(
 		func(c echo.Context) bool {
-			return c.Request().URL.Path != "/api/v1/public/auth/logoutAll"
+			_, needs := requireUserPaths[c.Request().URL.Path]
+			return !needs
 		},
 		authMW.RequireUser(),
 	))

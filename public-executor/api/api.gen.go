@@ -31,6 +31,11 @@ type Attribute struct {
 // AttributeValueType defines model for Attribute.ValueType.
 type AttributeValueType string
 
+// AuthConfirmEmailVerificationRequest defines model for AuthConfirmEmailVerificationRequest.
+type AuthConfirmEmailVerificationRequest struct {
+	Secret string `json:"secret"`
+}
+
 // AuthConfirmPasswordResetRequest defines model for AuthConfirmPasswordResetRequest.
 type AuthConfirmPasswordResetRequest struct {
 	NewPassword string `json:"newPassword"`
@@ -218,6 +223,9 @@ type UploadProductImageMultipartBody struct {
 	SortOrder   *int               `json:"sortOrder,omitempty"`
 }
 
+// AuthConfirmEmailVerificationJSONRequestBody defines body for AuthConfirmEmailVerification for application/json ContentType.
+type AuthConfirmEmailVerificationJSONRequestBody = AuthConfirmEmailVerificationRequest
+
 // AuthConfirmPasswordResetJSONRequestBody defines body for AuthConfirmPasswordReset for application/json ContentType.
 type AuthConfirmPasswordResetJSONRequestBody = AuthConfirmPasswordResetRequest
 
@@ -248,6 +256,9 @@ type UploadProductImageMultipartRequestBody UploadProductImageMultipartBody
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 
+	// (POST /api/v1/public/auth/confirmEmailVerification)
+	AuthConfirmEmailVerification(ctx echo.Context) error
+
 	// (POST /api/v1/public/auth/confirmPasswordReset)
 	AuthConfirmPasswordReset(ctx echo.Context) error
 
@@ -260,11 +271,17 @@ type ServerInterface interface {
 	// (POST /api/v1/public/auth/logoutAll)
 	AuthLogoutAll(ctx echo.Context) error
 
+	// (GET /api/v1/public/auth/me)
+	AuthMe(ctx echo.Context) error
+
 	// (POST /api/v1/public/auth/refresh)
 	AuthRefresh(ctx echo.Context) error
 
 	// (POST /api/v1/public/auth/register)
 	AuthRegister(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/requestEmailVerification)
+	AuthRequestEmailVerification(ctx echo.Context) error
 
 	// (POST /api/v1/public/auth/requestPasswordReset)
 	AuthRequestPasswordReset(ctx echo.Context) error
@@ -308,6 +325,15 @@ type ServerInterfaceWrapper struct {
 	Handler ServerInterface
 }
 
+// AuthConfirmEmailVerification converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthConfirmEmailVerification(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthConfirmEmailVerification(ctx)
+	return err
+}
+
 // AuthConfirmPasswordReset converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthConfirmPasswordReset(ctx echo.Context) error {
 	var err error
@@ -344,6 +370,15 @@ func (w *ServerInterfaceWrapper) AuthLogoutAll(ctx echo.Context) error {
 	return err
 }
 
+// AuthMe converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthMe(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthMe(ctx)
+	return err
+}
+
 // AuthRefresh converts echo context to params.
 func (w *ServerInterfaceWrapper) AuthRefresh(ctx echo.Context) error {
 	var err error
@@ -359,6 +394,15 @@ func (w *ServerInterfaceWrapper) AuthRegister(ctx echo.Context) error {
 
 	// Invoke the callback with all the unmarshaled arguments
 	err = w.Handler.AuthRegister(ctx)
+	return err
+}
+
+// AuthRequestEmailVerification converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthRequestEmailVerification(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthRequestEmailVerification(ctx)
 	return err
 }
 
@@ -521,12 +565,15 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/api/v1/public/auth/confirmEmailVerification", wrapper.AuthConfirmEmailVerification)
 	router.POST(baseURL+"/api/v1/public/auth/confirmPasswordReset", wrapper.AuthConfirmPasswordReset)
 	router.POST(baseURL+"/api/v1/public/auth/login", wrapper.AuthLogin)
 	router.POST(baseURL+"/api/v1/public/auth/logout", wrapper.AuthLogout)
 	router.POST(baseURL+"/api/v1/public/auth/logoutAll", wrapper.AuthLogoutAll)
+	router.GET(baseURL+"/api/v1/public/auth/me", wrapper.AuthMe)
 	router.POST(baseURL+"/api/v1/public/auth/refresh", wrapper.AuthRefresh)
 	router.POST(baseURL+"/api/v1/public/auth/register", wrapper.AuthRegister)
+	router.POST(baseURL+"/api/v1/public/auth/requestEmailVerification", wrapper.AuthRequestEmailVerification)
 	router.POST(baseURL+"/api/v1/public/auth/requestPasswordReset", wrapper.AuthRequestPasswordReset)
 	router.POST(baseURL+"/api/v1/public/cart/addItem", wrapper.CartAddItem)
 	router.POST(baseURL+"/api/v1/public/cart/clear", wrapper.CartClear)

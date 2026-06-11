@@ -43,7 +43,11 @@ export function onAuthChange(fn: () => void): () => void {
 }
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly code?: string,
+  ) {
     super(message)
     this.name = 'ApiError'
   }
@@ -91,13 +95,15 @@ async function handleResponse<T>(res: Response, path: string, method?: string): 
   }
   if (!res.ok) {
     let message = `${method ?? 'GET'} ${path} → HTTP ${res.status}`
+    let code: string | undefined
     try {
       const body = await res.json()
       if (body?.error?.message) message = body.error.message
+      if (body?.error?.code) code = body.error.code
     } catch {
       // не JSON — оставляем сухое сообщение
     }
-    throw new ApiError(res.status, message)
+    throw new ApiError(res.status, message, code)
   }
   return (await res.json()) as T
 }
@@ -217,6 +223,24 @@ export async function confirmPasswordResetRequest(
   await apiFetch<void>('/api/v1/public/auth/confirmPasswordReset', {
     method: 'POST',
     body: JSON.stringify({ secret, newPassword }),
+    skipAuthRefresh: true,
+  })
+}
+
+export function meRequest(): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/api/v1/public/auth/me')
+}
+
+export async function requestEmailVerificationRequest(): Promise<void> {
+  await apiFetch<void>('/api/v1/public/auth/requestEmailVerification', {
+    method: 'POST',
+  })
+}
+
+export function confirmEmailVerificationRequest(secret: string): Promise<AuthUser> {
+  return apiFetch<AuthUser>('/api/v1/public/auth/confirmEmailVerification', {
+    method: 'POST',
+    body: JSON.stringify({ secret }),
     skipAuthRefresh: true,
   })
 }

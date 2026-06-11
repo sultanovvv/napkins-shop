@@ -37,19 +37,23 @@ type IAuthUseCases interface {
 	LogoutAll(ctx context.Context, userID int64) error
 	RequestPasswordReset(ctx context.Context, in RequestPasswordResetInUDTO) (resetSecret string, _ error)
 	ConfirmPasswordReset(ctx context.Context, in ConfirmPasswordResetInUDTO) error
+	RequestEmailVerification(ctx context.Context, userID int64) (verifySecret string, _ error)
+	ConfirmEmailVerification(ctx context.Context, in ConfirmEmailVerificationInUDTO) (*entity.User, error)
+	GetByID(ctx context.Context, userID int64) (*entity.User, error)
 }
 
 type useCases struct {
-	cfg          *auth.Config
-	logger       *zap.Logger
-	tx           core_db.ITransactionProvider
-	userProv     core_db.IUserProvider
-	refreshProv  core_db.IRefreshTokenProvider
-	resetProv    core_db.IPasswordResetProvider
-	signer       IAccessTokenSigner
-	hasher       IPasswordHasher
-	identities   *Registry
-	cartMerger   ICartMerger
+	cfg            *auth.Config
+	logger         *zap.Logger
+	tx             core_db.ITransactionProvider
+	userProv       core_db.IUserProvider
+	refreshProv    core_db.IRefreshTokenProvider
+	resetProv      core_db.IPasswordResetProvider
+	emailVerifyProv core_db.IEmailVerificationProvider
+	signer         IAccessTokenSigner
+	hasher         IPasswordHasher
+	identities     *Registry
+	cartMerger     ICartMerger
 }
 
 func NewUseCase(
@@ -59,22 +63,24 @@ func NewUseCase(
 	userProv core_db.IUserProvider,
 	refreshProv core_db.IRefreshTokenProvider,
 	resetProv core_db.IPasswordResetProvider,
+	emailVerifyProv core_db.IEmailVerificationProvider,
 	signer IAccessTokenSigner,
 	hasher IPasswordHasher,
 	identities *Registry,
 	cartMerger ICartMerger,
 ) IAuthUseCases {
 	return &useCases{
-		cfg:         cfg,
-		logger:      logger,
-		tx:          tx,
-		userProv:    userProv,
-		refreshProv: refreshProv,
-		resetProv:   resetProv,
-		signer:      signer,
-		hasher:      hasher,
-		identities:  identities,
-		cartMerger:  cartMerger,
+		cfg:             cfg,
+		logger:          logger,
+		tx:              tx,
+		userProv:        userProv,
+		refreshProv:     refreshProv,
+		resetProv:       resetProv,
+		emailVerifyProv: emailVerifyProv,
+		signer:          signer,
+		hasher:          hasher,
+		identities:      identities,
+		cartMerger:      cartMerger,
 	}
 }
 
@@ -118,6 +124,14 @@ func (u *useCases) Register(ctx context.Context, in RegisterInUDTO) (*entity.Use
 			return err
 		}
 		pair = p
+
+		// Сразу выпускаем токен подтверждения email — внутри той же транзакции,
+		// чтобы либо юзер+токен оба создались, либо ни один. Сам secret пока
+		// никуда не уходит (нет SMTP), но в БД он есть, и при поднятии транспорта
+		// добавится отправка письма в одном месте — в issueEmailVerifyToken.
+		if _, err := u.issueEmailVerifyToken(ctx, c.ID); err != nil {
+			return err
+		}
 		return nil
 	})
 	if err != nil {
@@ -348,4 +362,92 @@ func nullableString(s string) *string {
 		return nil
 	}
 	return &s
+}
+
+// GetByID — для handler'а /auth/me. Возвращает свежие данные пользователя
+// (включая email_verified_at) сразу из БД, без побочных эффектов вроде
+// rotation refresh-токена.
+func (u *useCases) GetByID(ctx context.Context, userID int64) (*entity.User, error) {
+	return u.userProv.GetByID(ctx, userID)
+}
+
+// RequestEmailVerification — выпускает новый одноразовый токен подтверждения
+// email. Старые активные не отзываем намеренно: это «resend», и оба токена
+// должны работать до истечения первого (пользователь мог уже нажать ссылку
+// в первом письме).
+func (u *useCases) RequestEmailVerification(ctx context.Context, userID int64) (string, error) {
+	return u.issueEmailVerifyToken(ctx, userID)
+}
+
+func (u *useCases) issueEmailVerifyToken(ctx context.Context, userID int64) (string, error) {
+	user, err := u.userProv.GetByID(ctx, userID)
+	if err != nil {
+		return "", err
+	}
+	if user == nil {
+		return "", ErrInvalidCredentials
+	}
+	// Если email уже подтверждён — не плодим токены и возвращаем пустой
+	// secret. Handler в этом случае всё равно отдаёт 204 пользователю.
+	if user.EmailVerifiedAt != nil {
+		return "", nil
+	}
+
+	secret, secretHash, err := GenerateRefreshSecret()
+	if err != nil {
+		return "", err
+	}
+
+	ttl := u.cfg.EmailVerifyTTL
+	if ttl == 0 {
+		ttl = 7 * 24 * time.Hour
+	}
+	if _, err := u.emailVerifyProv.Create(ctx, entity.EmailVerificationToken{
+		UserID:    userID,
+		TokenHash: secretHash,
+		ExpiresAt: time.Now().Add(ttl),
+	}); err != nil {
+		return "", err
+	}
+
+	// TODO: когда появится email-транспорт — отправка письма со ссылкой
+	// /auth/verify-email?token=<secret>. В логи secret НЕ пишем.
+	return secret, nil
+}
+
+func (u *useCases) ConfirmEmailVerification(ctx context.Context, in ConfirmEmailVerificationInUDTO) (*entity.User, error) {
+	if in.Secret == "" {
+		return nil, ErrInvalidCredentials
+	}
+	hash := HashSecret(in.Secret)
+
+	var verified *entity.User
+	err := u.tx.Run(ctx, func(ctx context.Context) error {
+		stored, err := u.emailVerifyProv.GetByHash(ctx, hash)
+		if err != nil {
+			return err
+		}
+		if stored == nil || stored.UsedAt != nil || time.Now().After(stored.ExpiresAt) {
+			return ErrInvalidCredentials
+		}
+
+		now := time.Now()
+		if err := u.userProv.MarkEmailVerified(ctx, stored.UserID, now); err != nil {
+			return err
+		}
+		if err := u.emailVerifyProv.MarkUsed(ctx, stored.ID, now); err != nil {
+			return err
+		}
+
+		u2, err := u.userProv.GetByID(ctx, stored.UserID)
+		if err != nil {
+			return err
+		}
+		verified = u2
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return verified, nil
 }

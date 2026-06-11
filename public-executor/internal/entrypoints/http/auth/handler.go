@@ -170,6 +170,52 @@ func (h *AuthHandler) AuthRequestPasswordReset(ctx echo.Context) error {
 	return ctx.NoContent(http.StatusNoContent)
 }
 
+func (h *AuthHandler) AuthMe(ctx echo.Context) error {
+	uid, ok := ctx.Get(middlewares.CtxUserID).(int64)
+	if !ok {
+		return unauthorizedJSON(ctx, "authentication required")
+	}
+	user, err := h.useCase.GetByID(ctx.Request().Context(), uid)
+	if err != nil {
+		h.logger.Error("me failed", zap.Error(err))
+		return internalErr(ctx)
+	}
+	if user == nil {
+		return unauthorizedJSON(ctx, "user not found")
+	}
+	return ctx.JSON(http.StatusOK, authUserResponse(user))
+}
+
+func (h *AuthHandler) AuthRequestEmailVerification(ctx echo.Context) error {
+	uid, ok := ctx.Get(middlewares.CtxUserID).(int64)
+	if !ok {
+		return unauthorizedJSON(ctx, "authentication required")
+	}
+	if _, err := h.useCase.RequestEmailVerification(ctx.Request().Context(), uid); err != nil {
+		// Логируем, но клиенту 204 — поведение симметрично RequestPasswordReset.
+		h.logger.Error("request email verification failed", zap.Error(err))
+	}
+	return ctx.NoContent(http.StatusNoContent)
+}
+
+func (h *AuthHandler) AuthConfirmEmailVerification(ctx echo.Context) error {
+	var body api.AuthConfirmEmailVerificationRequest
+	if err := ctx.Bind(&body); err != nil {
+		return badRequest(ctx, "invalid request body")
+	}
+	user, err := h.useCase.ConfirmEmailVerification(ctx.Request().Context(), authuc.ConfirmEmailVerificationInUDTO{
+		Secret: body.Secret,
+	})
+	if err != nil {
+		if errors.Is(err, authuc.ErrInvalidCredentials) {
+			return badRequest(ctx, "invalid or expired verification token")
+		}
+		h.logger.Error("confirm email verification failed", zap.Error(err))
+		return internalErr(ctx)
+	}
+	return ctx.JSON(http.StatusOK, authUserResponse(user))
+}
+
 func (h *AuthHandler) AuthConfirmPasswordReset(ctx echo.Context) error {
 	var body api.AuthConfirmPasswordResetRequest
 	if err := ctx.Bind(&body); err != nil {

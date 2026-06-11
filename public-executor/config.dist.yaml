@@ -29,6 +29,7 @@ auth:
   access_token_ttl: 15m
   refresh_token_ttl: 720h    # 30 дней
   password_reset_ttl: 1h
+  email_verify_ttl: 168h    # 7 дней
   guest_cart_ttl: 4320h      # 180 дней
   argon2:
     memory: 65536            # 64 MiB

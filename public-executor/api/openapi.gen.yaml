@@ -247,6 +247,65 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
+  /api/v1/public/auth/me:
+    get:
+      tags:
+        - Auth
+      operationId: authMe
+      description: Свежие данные текущего пользователя. Требует валидный access JWT.
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/v1/public/auth/requestEmailVerification:
+    post:
+      tags:
+        - Auth
+      operationId: authRequestEmailVerification
+      description: Выпустить новый токен подтверждения email. Требует валидный access JWT (это «отправить ещё раз»).
+      responses:
+        '204':
+          description: OK
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+  /api/v1/public/auth/confirmEmailVerification:
+    post:
+      tags:
+        - Auth
+      operationId: authConfirmEmailVerification
+      description: Подтвердить email по secret из письма. Публичный — токен сам по себе и есть авторизация.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthConfirmEmailVerificationRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
   /api/v1/public/auth/requestPasswordReset:
     post:
       tags:
@@ -705,6 +764,13 @@ components:
         secret:
           type: string
         newPassword:
+          type: string
+    AuthConfirmEmailVerificationRequest:
+      type: object
+      required:
+        - secret
+      properties:
+        secret:
           type: string
     CartResponse:
       type: object

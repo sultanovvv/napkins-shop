@@ -11,14 +11,18 @@ import (
 
 func loginResponseFromEntity(user *entity.User, pair *entity.TokenPair) api.AuthLoginResponse {
 	return api.AuthLoginResponse{
-		User: api.AuthUser{
-			Id:              user.PublicID,
-			Email:           user.Email,
-			EmailVerifiedAt: user.EmailVerifiedAt,
-		},
+		User:             authUserResponse(user),
 		AccessToken:      pair.AccessToken,
 		AccessExpiresAt:  pair.AccessExpiresAt,
 		RefreshExpiresAt: pair.RefreshExpiresAt,
+	}
+}
+
+func authUserResponse(user *entity.User) api.AuthUser {
+	return api.AuthUser{
+		Id:              user.PublicID,
+		Email:           user.Email,
+		EmailVerifiedAt: user.EmailVerifiedAt,
 	}
 }
 

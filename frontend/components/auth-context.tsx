@@ -28,6 +28,9 @@ type AuthContextValue = {
   register: (email: string, password: string) => Promise<void>
   logout: () => Promise<void>
   logoutAll: () => Promise<void>
+  // setUser нужен confirm-email странице (и любому, кто хочет вручную
+  // обновить snapshot пользователя без побочного rotate refresh-токена).
+  setUser: (user: AuthUser) => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -107,7 +110,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, status, login, register, logout, logoutAll }),
+    () => ({ user, status, login, register, logout, logoutAll, setUser }),
     [user, status, login, register, logout, logoutAll],
   )
 

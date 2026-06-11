@@ -41,3 +41,8 @@ type ConfirmPasswordResetInUDTO struct {
 	Secret      string
 	NewPassword string
 }
+
+// ConfirmEmailVerificationInUDTO — подтверждение email по secret из письма.
+type ConfirmEmailVerificationInUDTO struct {
+	Secret string
+}

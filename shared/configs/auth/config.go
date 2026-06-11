@@ -16,6 +16,7 @@ type Config struct {
 	AccessTokenTTL   time.Duration `mapstructure:"access_token_ttl"`
 	RefreshTokenTTL  time.Duration `mapstructure:"refresh_token_ttl"`
 	PasswordResetTTL time.Duration `mapstructure:"password_reset_ttl"`
+	EmailVerifyTTL   time.Duration `mapstructure:"email_verify_ttl"`
 
 	// GuestCartTTL — срок жизни HttpOnly-cookie gct. Сам guest_token_hash
 	// в БД не имеет TTL: чистим строки carts через будущий cleanup-job.

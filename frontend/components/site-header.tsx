@@ -6,6 +6,7 @@ import { LogOut, Search, User, ShoppingBasket, Menu } from 'lucide-react'
 import { useCart } from '@/components/cart-context'
 import { useAuth } from '@/components/auth-context'
 import { CartDrawer } from '@/components/cart-drawer'
+import { EmailVerifyBanner } from '@/components/email-verify-banner'
 import {
   Sheet,
   SheetContent,
@@ -20,6 +21,7 @@ export function SiteHeader({ mobileCategoryNav }: { mobileCategoryNav?: ReactNod
 
   return (
     <header className="border-b border-border bg-card">
+      <EmailVerifyBanner />
       {/* Top utility bar */}
       <div className="bg-secondary text-secondary-foreground">
         <div className="mx-auto flex max-w-7xl items-center justify-end gap-4 px-4 py-2 text-sm">

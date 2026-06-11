@@ -13,6 +13,7 @@ import (
 
 var ErrNotFound = errors.New("order not found")
 var ErrProductNotFound = errors.New("product not found")
+var ErrEmailNotVerified = errors.New("email not verified")
 
 type IOrderUseCases interface {
 	CreateOrder(ctx context.Context, in CreateOrderInUDTO) (*entity.Order, error)
@@ -23,21 +24,36 @@ type useCases struct {
 	logger      *zap.Logger
 	orderProv   core_db.IOrderProvider
 	productProv core_db.IProductProvider
+	userProv    core_db.IUserProvider
 }
 
 func NewUseCase(
 	orderProv core_db.IOrderProvider,
 	productProv core_db.IProductProvider,
+	userProv core_db.IUserProvider,
 	logger *zap.Logger,
 ) IOrderUseCases {
 	return &useCases{
 		logger:      logger,
 		orderProv:   orderProv,
 		productProv: productProv,
+		userProv:    userProv,
 	}
 }
 
 func (u *useCases) CreateOrder(ctx context.Context, in CreateOrderInUDTO) (*entity.Order, error) {
+	// Гость (UserID == nil) checkout-ит без ограничений. Залогиненный
+	// пользователь должен иметь подтверждённый email.
+	if in.UserID != nil {
+		user, err := u.userProv.GetByID(ctx, *in.UserID)
+		if err != nil {
+			return nil, err
+		}
+		if user == nil || user.EmailVerifiedAt == nil {
+			return nil, ErrEmailNotVerified
+		}
+	}
+
 	items := make([]entity.OrderItem, 0, len(in.Items))
 	for _, it := range in.Items {
 		p, err := u.productProv.GetByID(ctx, it.ProductID)
