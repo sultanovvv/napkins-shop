@@ -54,11 +54,10 @@ func NewUseCase(
 var _ authuc.ICartMerger = (*useCases)(nil)
 
 func (u *useCases) GetCart(ctx context.Context, actor Actor) (*entity.Cart, error) {
-	// ensure создаёт пустую корзину, если её ещё нет, чтобы Get-маршрут не
-	// падал на первой загрузке страницы; relations подтянем отдельным SELECT.
-	if _, err := u.ensure(ctx, actor); err != nil {
-		return nil, err
-	}
+	// НЕ создаём корзину под чтение: рядовой посетитель, который не положил
+	// ни одного товара, не должен оставлять следа в БД. Если корзины нет,
+	// readCart вернёт пустую заглушку (ensureNotNil), а реальная строка
+	// в `carts` появится только на первом AddItem/SetQuantity.
 	return u.readCart(ctx, actor)
 }
 
