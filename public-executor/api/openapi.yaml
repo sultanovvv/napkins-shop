@@ -149,6 +149,289 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorModel'
 
+  /api/v1/public/auth/register:
+    post:
+      tags: [Auth]
+      operationId: authRegister
+      description: 'Регистрация по email и паролю. Возвращает пользователя и пару токенов; refresh-секрет дополнительно ставится HttpOnly cookie.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRegisterRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+        '409':
+          description: Conflict (email taken)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/login:
+    post:
+      tags: [Auth]
+      operationId: authLogin
+      description: 'Логин по email и паролю. Если в запросе присутствует guest-cart cookie, гостевая корзина мерджится в пользовательскую.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthLoginRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/refresh:
+    post:
+      tags: [Auth]
+      operationId: authRefresh
+      description: 'Обмен refresh-секрета на новую пару токенов. Секрет читается из HttpOnly cookie; rotation: старый секрет помечается отозванным.'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthLoginResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/logout:
+    post:
+      tags: [Auth]
+      operationId: authLogout
+      description: 'Отзыв текущего refresh-секрета (одно устройство).'
+      responses:
+        '204':
+          description: 'OK'
+
+  /api/v1/public/auth/logoutAll:
+    post:
+      tags: [Auth]
+      operationId: authLogoutAll
+      description: 'Отзыв всех активных refresh-секретов пользователя (все устройства). Требует валидный access JWT.'
+      responses:
+        '204':
+          description: 'OK'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/me:
+    get:
+      tags: [Auth]
+      operationId: authMe
+      description: 'Свежие данные текущего пользователя. Требует валидный access JWT.'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/requestEmailVerification:
+    post:
+      tags: [Auth]
+      operationId: authRequestEmailVerification
+      description: 'Выпустить новый токен подтверждения email. Требует валидный access JWT (это «отправить ещё раз»).'
+      responses:
+        '204':
+          description: 'OK'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/confirmEmailVerification:
+    post:
+      tags: [Auth]
+      operationId: authConfirmEmailVerification
+      description: 'Подтвердить email по secret из письма. Публичный — токен сам по себе и есть авторизация.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthConfirmEmailVerificationRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthUser'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/auth/requestPasswordReset:
+    post:
+      tags: [Auth]
+      operationId: authRequestPasswordReset
+      description: 'Создаёт одноразовый токен восстановления. Реакция всегда 204 (без раскрытия существования email).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequestPasswordResetRequest'
+      responses:
+        '204':
+          description: 'OK'
+
+  /api/v1/public/auth/confirmPasswordReset:
+    post:
+      tags: [Auth]
+      operationId: authConfirmPasswordReset
+      description: 'Подтверждает восстановление пароля по секрету. Все активные refresh-токены пользователя отзываются.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthConfirmPasswordResetRequest'
+      responses:
+        '204':
+          description: 'OK'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/cart/getCart:
+    get:
+      tags: [Cart]
+      operationId: getCart
+      description: "Возвращает текущую корзину. Идентификация — Bearer access JWT либо guest-cart cookie (выпускается middleware автоматически)."
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /api/v1/public/cart/addItem:
+    post:
+      tags: [Cart]
+      operationId: cartAddItem
+      description: 'Добавить товар в корзину (или увеличить количество).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartAddItemRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+        '404':
+          description: Product not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorModel'
+
+  /api/v1/public/cart/setQuantity:
+    post:
+      tags: [Cart]
+      operationId: cartSetQuantity
+      description: 'Установить точное количество товара (qty <= 0 удалит позицию).'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartSetQuantityRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /api/v1/public/cart/removeItem:
+    post:
+      tags: [Cart]
+      operationId: cartRemoveItem
+      description: 'Удалить позицию из корзины.'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CartRemoveItemRequest'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
+  /api/v1/public/cart/clear:
+    post:
+      tags: [Cart]
+      operationId: cartClear
+      description: 'Очистить корзину.'
+      responses:
+        '200':
+          description: 'OK'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartResponse'
+
   /api/v1/public/uploadProductImage:
     post:
       tags: [Products]
@@ -377,6 +660,133 @@ components:
           type: string
         quantity:
           type: integer
+
+    AuthRegisterRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthLoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        provider:
+          type: string
+          description: 'Идентификатор identity-провайдера. Пусто или local — email+password.'
+        email:
+          type: string
+        password:
+          type: string
+
+    AuthLoginResponse:
+      type: object
+      required: [user, accessToken, accessExpiresAt, refreshExpiresAt]
+      properties:
+        user:
+          $ref: '#/components/schemas/AuthUser'
+        accessToken:
+          type: string
+        accessExpiresAt:
+          type: string
+          format: date-time
+        refreshExpiresAt:
+          type: string
+          format: date-time
+          description: 'Сам refresh-секрет уходит в HttpOnly cookie; здесь — только срок действия для UI.'
+
+    AuthUser:
+      type: object
+      required: [id, email]
+      properties:
+        id:
+          type: string
+          description: 'public_id пользователя (UUID), он же sub в JWT.'
+        email:
+          type: string
+        emailVerifiedAt:
+          type: string
+          format: date-time
+          nullable: true
+
+    AuthRequestPasswordResetRequest:
+      type: object
+      required: [email]
+      properties:
+        email:
+          type: string
+
+    AuthConfirmPasswordResetRequest:
+      type: object
+      required: [secret, newPassword]
+      properties:
+        secret:
+          type: string
+        newPassword:
+          type: string
+
+    AuthConfirmEmailVerificationRequest:
+      type: object
+      required: [secret]
+      properties:
+        secret:
+          type: string
+
+    CartResponse:
+      type: object
+      required: [items, totalQuantity]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartItem'
+        totalQuantity:
+          type: integer
+
+    CartItem:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+        product:
+          $ref: '#/components/schemas/Product'
+
+    CartAddItemRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 1
+
+    CartSetQuantityRequest:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+          format: int64
+        quantity:
+          type: integer
+          minimum: 0
+
+    CartRemoveItemRequest:
+      type: object
+      required: [productId]
+      properties:
+        productId:
+          type: integer
+          format: int64
 
     ErrorModel:
       type: object

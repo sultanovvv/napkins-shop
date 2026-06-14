@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"shared/configs/auth"
 	"shared/configs/http_server"
 	"shared/configs/postgres"
 	"shared/configs/s3"
@@ -17,6 +18,7 @@ type AppConfig struct {
 	Postgres        *postgres.Config    `mapstructure:"postgres"`
 	HTTP            *http_server.Config `mapstructure:"http"`
 	S3              *s3.Config          `mapstructure:"s3"`
+	Auth            *auth.Config        `mapstructure:"auth"`
 	ShutdownTimeout time.Duration       `mapstructure:"shutdown_timeout"`
 }
 

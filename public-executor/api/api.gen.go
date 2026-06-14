@@ -31,6 +31,86 @@ type Attribute struct {
 // AttributeValueType defines model for Attribute.ValueType.
 type AttributeValueType string
 
+// AuthConfirmEmailVerificationRequest defines model for AuthConfirmEmailVerificationRequest.
+type AuthConfirmEmailVerificationRequest struct {
+	Secret string `json:"secret"`
+}
+
+// AuthConfirmPasswordResetRequest defines model for AuthConfirmPasswordResetRequest.
+type AuthConfirmPasswordResetRequest struct {
+	NewPassword string `json:"newPassword"`
+	Secret      string `json:"secret"`
+}
+
+// AuthLoginRequest defines model for AuthLoginRequest.
+type AuthLoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+
+	// Provider Идентификатор identity-провайдера. Пусто или local — email+password.
+	Provider *string `json:"provider,omitempty"`
+}
+
+// AuthLoginResponse defines model for AuthLoginResponse.
+type AuthLoginResponse struct {
+	AccessExpiresAt time.Time `json:"accessExpiresAt"`
+	AccessToken     string    `json:"accessToken"`
+
+	// RefreshExpiresAt Сам refresh-секрет уходит в HttpOnly cookie; здесь — только срок действия для UI.
+	RefreshExpiresAt time.Time `json:"refreshExpiresAt"`
+	User             AuthUser  `json:"user"`
+}
+
+// AuthRegisterRequest defines model for AuthRegisterRequest.
+type AuthRegisterRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// AuthRequestPasswordResetRequest defines model for AuthRequestPasswordResetRequest.
+type AuthRequestPasswordResetRequest struct {
+	Email string `json:"email"`
+}
+
+// AuthUser defines model for AuthUser.
+type AuthUser struct {
+	Email           string     `json:"email"`
+	EmailVerifiedAt *time.Time `json:"emailVerifiedAt"`
+
+	// Id public_id пользователя (UUID), он же sub в JWT.
+	Id string `json:"id"`
+}
+
+// CartAddItemRequest defines model for CartAddItemRequest.
+type CartAddItemRequest struct {
+	ProductId int64 `json:"productId"`
+	Quantity  int   `json:"quantity"`
+}
+
+// CartItem defines model for CartItem.
+type CartItem struct {
+	Product   *Product `json:"product,omitempty"`
+	ProductId int64    `json:"productId"`
+	Quantity  int      `json:"quantity"`
+}
+
+// CartRemoveItemRequest defines model for CartRemoveItemRequest.
+type CartRemoveItemRequest struct {
+	ProductId int64 `json:"productId"`
+}
+
+// CartResponse defines model for CartResponse.
+type CartResponse struct {
+	Items         []CartItem `json:"items"`
+	TotalQuantity int        `json:"totalQuantity"`
+}
+
+// CartSetQuantityRequest defines model for CartSetQuantityRequest.
+type CartSetQuantityRequest struct {
+	ProductId int64 `json:"productId"`
+	Quantity  int   `json:"quantity"`
+}
+
 // CategoryNode defines model for CategoryNode.
 type CategoryNode struct {
 	Children  []CategoryNode `json:"children"`
@@ -143,6 +223,30 @@ type UploadProductImageMultipartBody struct {
 	SortOrder   *int               `json:"sortOrder,omitempty"`
 }
 
+// AuthConfirmEmailVerificationJSONRequestBody defines body for AuthConfirmEmailVerification for application/json ContentType.
+type AuthConfirmEmailVerificationJSONRequestBody = AuthConfirmEmailVerificationRequest
+
+// AuthConfirmPasswordResetJSONRequestBody defines body for AuthConfirmPasswordReset for application/json ContentType.
+type AuthConfirmPasswordResetJSONRequestBody = AuthConfirmPasswordResetRequest
+
+// AuthLoginJSONRequestBody defines body for AuthLogin for application/json ContentType.
+type AuthLoginJSONRequestBody = AuthLoginRequest
+
+// AuthRegisterJSONRequestBody defines body for AuthRegister for application/json ContentType.
+type AuthRegisterJSONRequestBody = AuthRegisterRequest
+
+// AuthRequestPasswordResetJSONRequestBody defines body for AuthRequestPasswordReset for application/json ContentType.
+type AuthRequestPasswordResetJSONRequestBody = AuthRequestPasswordResetRequest
+
+// CartAddItemJSONRequestBody defines body for CartAddItem for application/json ContentType.
+type CartAddItemJSONRequestBody = CartAddItemRequest
+
+// CartRemoveItemJSONRequestBody defines body for CartRemoveItem for application/json ContentType.
+type CartRemoveItemJSONRequestBody = CartRemoveItemRequest
+
+// CartSetQuantityJSONRequestBody defines body for CartSetQuantity for application/json ContentType.
+type CartSetQuantityJSONRequestBody = CartSetQuantityRequest
+
 // CreateOrderJSONRequestBody defines body for CreateOrder for application/json ContentType.
 type CreateOrderJSONRequestBody = CreateOrderRequest
 
@@ -151,6 +255,51 @@ type UploadProductImageMultipartRequestBody UploadProductImageMultipartBody
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
+
+	// (POST /api/v1/public/auth/confirmEmailVerification)
+	AuthConfirmEmailVerification(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/confirmPasswordReset)
+	AuthConfirmPasswordReset(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/login)
+	AuthLogin(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/logout)
+	AuthLogout(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/logoutAll)
+	AuthLogoutAll(ctx echo.Context) error
+
+	// (GET /api/v1/public/auth/me)
+	AuthMe(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/refresh)
+	AuthRefresh(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/register)
+	AuthRegister(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/requestEmailVerification)
+	AuthRequestEmailVerification(ctx echo.Context) error
+
+	// (POST /api/v1/public/auth/requestPasswordReset)
+	AuthRequestPasswordReset(ctx echo.Context) error
+
+	// (POST /api/v1/public/cart/addItem)
+	CartAddItem(ctx echo.Context) error
+
+	// (POST /api/v1/public/cart/clear)
+	CartClear(ctx echo.Context) error
+
+	// (GET /api/v1/public/cart/getCart)
+	GetCart(ctx echo.Context) error
+
+	// (POST /api/v1/public/cart/removeItem)
+	CartRemoveItem(ctx echo.Context) error
+
+	// (POST /api/v1/public/cart/setQuantity)
+	CartSetQuantity(ctx echo.Context) error
 
 	// (POST /api/v1/public/createOrder)
 	CreateOrder(ctx echo.Context) error
@@ -174,6 +323,141 @@ type ServerInterface interface {
 // ServerInterfaceWrapper converts echo contexts to parameters.
 type ServerInterfaceWrapper struct {
 	Handler ServerInterface
+}
+
+// AuthConfirmEmailVerification converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthConfirmEmailVerification(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthConfirmEmailVerification(ctx)
+	return err
+}
+
+// AuthConfirmPasswordReset converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthConfirmPasswordReset(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthConfirmPasswordReset(ctx)
+	return err
+}
+
+// AuthLogin converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthLogin(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthLogin(ctx)
+	return err
+}
+
+// AuthLogout converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthLogout(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthLogout(ctx)
+	return err
+}
+
+// AuthLogoutAll converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthLogoutAll(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthLogoutAll(ctx)
+	return err
+}
+
+// AuthMe converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthMe(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthMe(ctx)
+	return err
+}
+
+// AuthRefresh converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthRefresh(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthRefresh(ctx)
+	return err
+}
+
+// AuthRegister converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthRegister(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthRegister(ctx)
+	return err
+}
+
+// AuthRequestEmailVerification converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthRequestEmailVerification(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthRequestEmailVerification(ctx)
+	return err
+}
+
+// AuthRequestPasswordReset converts echo context to params.
+func (w *ServerInterfaceWrapper) AuthRequestPasswordReset(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.AuthRequestPasswordReset(ctx)
+	return err
+}
+
+// CartAddItem converts echo context to params.
+func (w *ServerInterfaceWrapper) CartAddItem(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CartAddItem(ctx)
+	return err
+}
+
+// CartClear converts echo context to params.
+func (w *ServerInterfaceWrapper) CartClear(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CartClear(ctx)
+	return err
+}
+
+// GetCart converts echo context to params.
+func (w *ServerInterfaceWrapper) GetCart(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.GetCart(ctx)
+	return err
+}
+
+// CartRemoveItem converts echo context to params.
+func (w *ServerInterfaceWrapper) CartRemoveItem(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CartRemoveItem(ctx)
+	return err
+}
+
+// CartSetQuantity converts echo context to params.
+func (w *ServerInterfaceWrapper) CartSetQuantity(ctx echo.Context) error {
+	var err error
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.CartSetQuantity(ctx)
+	return err
 }
 
 // CreateOrder converts echo context to params.
@@ -281,6 +565,21 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 		Handler: si,
 	}
 
+	router.POST(baseURL+"/api/v1/public/auth/confirmEmailVerification", wrapper.AuthConfirmEmailVerification)
+	router.POST(baseURL+"/api/v1/public/auth/confirmPasswordReset", wrapper.AuthConfirmPasswordReset)
+	router.POST(baseURL+"/api/v1/public/auth/login", wrapper.AuthLogin)
+	router.POST(baseURL+"/api/v1/public/auth/logout", wrapper.AuthLogout)
+	router.POST(baseURL+"/api/v1/public/auth/logoutAll", wrapper.AuthLogoutAll)
+	router.GET(baseURL+"/api/v1/public/auth/me", wrapper.AuthMe)
+	router.POST(baseURL+"/api/v1/public/auth/refresh", wrapper.AuthRefresh)
+	router.POST(baseURL+"/api/v1/public/auth/register", wrapper.AuthRegister)
+	router.POST(baseURL+"/api/v1/public/auth/requestEmailVerification", wrapper.AuthRequestEmailVerification)
+	router.POST(baseURL+"/api/v1/public/auth/requestPasswordReset", wrapper.AuthRequestPasswordReset)
+	router.POST(baseURL+"/api/v1/public/cart/addItem", wrapper.CartAddItem)
+	router.POST(baseURL+"/api/v1/public/cart/clear", wrapper.CartClear)
+	router.GET(baseURL+"/api/v1/public/cart/getCart", wrapper.GetCart)
+	router.POST(baseURL+"/api/v1/public/cart/removeItem", wrapper.CartRemoveItem)
+	router.POST(baseURL+"/api/v1/public/cart/setQuantity", wrapper.CartSetQuantity)
 	router.POST(baseURL+"/api/v1/public/createOrder", wrapper.CreateOrder)
 	router.GET(baseURL+"/api/v1/public/getCategoriesTree", wrapper.GetCategoriesTree)
 	router.GET(baseURL+"/api/v1/public/getOrder/:id", wrapper.GetOrder)

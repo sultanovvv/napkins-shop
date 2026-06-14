@@ -2,9 +2,11 @@
 
 import Link from 'next/link'
 import { useState, type ReactNode } from 'react'
-import { Search, User, ShoppingBasket, Menu } from 'lucide-react'
+import { LogOut, Search, User, ShoppingBasket, Menu } from 'lucide-react'
 import { useCart } from '@/components/cart-context'
+import { useAuth } from '@/components/auth-context'
 import { CartDrawer } from '@/components/cart-drawer'
+import { EmailVerifyBanner } from '@/components/email-verify-banner'
 import {
   Sheet,
   SheetContent,
@@ -14,10 +16,12 @@ import {
 
 export function SiteHeader({ mobileCategoryNav }: { mobileCategoryNav?: ReactNode }) {
   const { totalItems } = useCart()
+  const { user, status, logout } = useAuth()
   const [cartOpen, setCartOpen] = useState(false)
 
   return (
     <header className="border-b border-border bg-card">
+      <EmailVerifyBanner />
       {/* Top utility bar */}
       <div className="bg-secondary text-secondary-foreground">
         <div className="mx-auto flex max-w-7xl items-center justify-end gap-4 px-4 py-2 text-sm">
@@ -61,13 +65,36 @@ export function SiteHeader({ mobileCategoryNav }: { mobileCategoryNav?: ReactNod
         </div>
 
         <div className="flex items-center gap-2">
-          <Link
-            href="/login"
-            className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-secondary sm:flex"
-          >
-            <User className="size-5 text-primary" />
-            Вход
-          </Link>
+          {status === 'authenticated' && user ? (
+            <div className="hidden items-center gap-1 sm:flex">
+              <span
+                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground"
+                title={user.email}
+              >
+                <User className="size-5 text-primary" />
+                <span className="max-w-[160px] truncate">{user.email}</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  void logout()
+                }}
+                className="rounded-md p-2 text-muted-foreground hover:bg-secondary hover:text-destructive"
+                aria-label="Выйти"
+                title="Выйти"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/auth/login"
+              className="hidden items-center gap-2 rounded-md px-3 py-2 text-sm text-foreground hover:bg-secondary sm:flex"
+            >
+              <User className="size-5 text-primary" />
+              {status === 'loading' ? '…' : 'Вход'}
+            </Link>
+          )}
           <button
             type="button"
             onClick={() => setCartOpen(true)}
