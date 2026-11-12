@@ -1,0 +1,6 @@
+type: object
+additionalProperties: false
+required: [error]
+properties:
+  error:
+    $ref: '../schemas/ErrorBody.yaml'

@@ -1,0 +1,24 @@
+type: object
+additionalProperties: false
+properties:
+  name:
+    type: string
+    minLength: 1
+  slug:
+    type: string
+    minLength: 1
+    description: Ручное значение; null и пустая строка запрещены.
+  parentId:
+    type: integer
+    format: int64
+    nullable: true
+    minimum: 1
+    description: Отсутствие и null сохраняют родителя. Для очистки использовать clearParentId.
+  clearParentId:
+    type: boolean
+    default: false
+    description: Перенос в корень. Нельзя сочетать с непустым parentId.
+  sortOrder:
+    type: integer
+    minimum: -2147483648
+    maximum: 2147483647

@@ -1,0 +1,11 @@
+type: object
+additionalProperties: false
+required: [code, message, target]
+properties:
+  code:
+    type: string
+  message:
+    type: string
+  target:
+    type: string
+    description: Имя поля запроса, например name, slug, parentId или clearParentId.

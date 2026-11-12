@@ -1,0 +1,34 @@
+parameters:
+  - $ref: '../parameters/CategoryID.yaml'
+get:
+  operationId: getCategory
+  summary: Получение категории по ID
+  responses:
+    '200':
+      $ref: '../responses/CategoryResponse.yaml'
+    default:
+      $ref: '../responses/ErrorResponse.yaml'
+patch:
+  operationId: updateCategory
+  summary: Частичное изменение категории
+  description: Отсутствующие поля сохраняются. Для переноса в корень передать clearParentId=true. Переименование не меняет slug.
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/UpdateCategoryRequest.yaml'
+  responses:
+    '200':
+      $ref: '../responses/CategoryResponse.yaml'
+    default:
+      $ref: '../responses/ErrorResponse.yaml'
+delete:
+  operationId: deleteCategory
+  summary: Удаление категории со всем поддеревом
+  description: Удаляет выбранную категорию и всех её потомков одной транзакцией. Все связанные товары сохраняются, их category_id становится NULL (корень каталога, без привязки к категории). Товары и категории вне удаляемой ветки не изменяются.
+  responses:
+    '204':
+      description: Категория и все её потомки удалены.
+    default:
+      $ref: '../responses/ErrorResponse.yaml'

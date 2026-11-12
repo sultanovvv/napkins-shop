@@ -8,9 +8,11 @@ import (
 	"github.com/spf13/viper"
 
 	"shared/configs/http_server"
+	"shared/configs/postgres"
 )
 
 type AppConfig struct {
+	Postgres        *postgres.Config   `mapstructure:"postgres"`
 	HTTP            http_server.Config `mapstructure:"http"`
 	ShutdownTimeout time.Duration      `mapstructure:"shutdown_timeout"`
 }
@@ -41,6 +43,15 @@ func NewAppConfig() (*AppConfig, error) {
 	}
 	if cfg.ShutdownTimeout <= 0 {
 		return nil, fmt.Errorf("shutdown_timeout must be positive")
+	}
+	if cfg.Postgres == nil {
+		return nil, fmt.Errorf("postgres config is required: copy backoffice-executor/config.dist.yaml to backoffice-executor/config.yaml")
+	}
+	if cfg.Postgres.Host == "" || cfg.Postgres.Name == "" || cfg.Postgres.User == "" {
+		return nil, fmt.Errorf("postgres.host, postgres.name and postgres.user are required")
+	}
+	if cfg.Postgres.Port < 1 || cfg.Postgres.Port > 65535 {
+		return nil, fmt.Errorf("postgres.port must be between 1 and 65535")
 	}
 
 	return &cfg, nil

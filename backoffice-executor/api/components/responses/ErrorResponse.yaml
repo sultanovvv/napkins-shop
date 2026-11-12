@@ -1,0 +1,13 @@
+description: Ошибка запроса. Код определяет причину, details содержит ошибки отдельных полей.
+content:
+  application/json:
+    schema:
+      $ref: '../schemas/Error.yaml'
+    example:
+      error:
+        code: VALIDATION_ERROR
+        message: Request validation failed
+        details:
+          - code: INVALID_VALUE
+            message: must not be empty
+            target: name

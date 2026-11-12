@@ -1,0 +1,12 @@
+get:
+  operationId: getHealth
+  summary: Проверка работоспособности HTTP-сервера
+  responses:
+    '200':
+      description: HTTP-сервер работает. Подключения к БД и S3 пока не проверяются.
+      content:
+        application/json:
+          schema:
+            $ref: '../schemas/HealthResponse.yaml'
+    default:
+      $ref: '../responses/ErrorResponse.yaml'

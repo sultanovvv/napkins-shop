@@ -73,6 +73,7 @@ func InitDatabase(cfg postgres.Config) (*bun.DB, error) {
 	))
 
 	if err = db.Ping(); err != nil {
+		_ = db.Close()
 		return nil, fmt.Errorf("ping database %s@%s:%d/%s: %w",
 			cfg.User, cfg.Host, cfg.Port, cfg.Name, err)
 	}

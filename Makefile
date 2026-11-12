@@ -2,7 +2,7 @@
 # Выбор можно переопределить: make GO=/path/to/go test.
 GO ?= $(if $(GOROOT),$(GOROOT)/bin/go,go)
 
-.PHONY: apis public-openapi-bundle public-openapi-gen backoffice-openapi-gen test build backoffice-run go-version
+.PHONY: apis public-openapi-bundle public-openapi-gen backoffice-openapi-bundle backoffice-openapi-gen test build backoffice-run go-version
 
 apis: public-openapi-bundle public-openapi-gen backoffice-openapi-gen
 
@@ -15,6 +15,10 @@ public-openapi-bundle:
 public-openapi-gen:
 	cd public-executor/api && "$(GO)" run github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen --config=config/generator.config.yaml openapi.gen.yaml
 
+backoffice-openapi-bundle:
+	cd backoffice-executor/api && npx -y @redocly/cli@2.53.3 bundle openapi.yaml -o openapi.gen.yaml
+
+# go generate сначала собирает YAML, затем генерирует сервер и типы.
 backoffice-openapi-gen:
 	cd backoffice-executor/api && "$(GO)" generate .
 
