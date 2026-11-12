@@ -1,0 +1,5 @@
+type: object
+required: [status]
+properties:
+  status:
+    $ref: '../enums/HealthResponseStatus.yaml'

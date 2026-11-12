@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required: [id, name, slug, parentId, sortOrder]
+properties:
+  id:
+    type: integer
+    format: int64
+    minimum: 1
+  name:
+    type: string
+  slug:
+    type: string
+  parentId:
+    type: integer
+    format: int64
+    nullable: true
+    minimum: 1
+  sortOrder:
+    type: integer
+    minimum: -2147483648
+    maximum: 2147483647

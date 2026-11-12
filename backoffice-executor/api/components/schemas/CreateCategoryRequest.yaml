@@ -1,0 +1,21 @@
+type: object
+additionalProperties: false
+required: [name]
+properties:
+  name:
+    type: string
+    minLength: 1
+  slug:
+    type: string
+    nullable: true
+    description: При отсутствии, null или пустом значении генерируется из name с числовым суффиксом при конфликте.
+  parentId:
+    type: integer
+    format: int64
+    nullable: true
+    minimum: 1
+  sortOrder:
+    type: integer
+    minimum: -2147483648
+    maximum: 2147483647
+    default: 0

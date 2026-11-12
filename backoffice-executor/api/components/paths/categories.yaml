@@ -1,0 +1,28 @@
+get:
+  operationId: listCategories
+  summary: Список категорий в порядке «родитель перед детьми»
+  responses:
+    '200':
+      description: Плоский список; пустой результат — массив [].
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '../schemas/Category.yaml'
+    default:
+      $ref: '../responses/ErrorResponse.yaml'
+post:
+  operationId: createCategory
+  summary: Создание категории
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema:
+          $ref: '../schemas/CreateCategoryRequest.yaml'
+  responses:
+    '201':
+      $ref: '../responses/CategoryResponse.yaml'
+    default:
+      $ref: '../responses/ErrorResponse.yaml'

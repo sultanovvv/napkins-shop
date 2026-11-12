@@ -1,11 +1,11 @@
 services:
-  decoupage-shop-pg:
+  pg:
     container_name: decoupage-shop-pg
-    image: postgres:16-alpine
+    image: postgres:16.0
     volumes:
       - shop-decoupage-pg-data:/var/lib/postgresql/data
     ports:
-      - "15432:5432"
+      - "25432:5432"
     env_file:
       - '.env'
     environment:
@@ -18,13 +18,13 @@ services:
       timeout: 5s
       retries: 5
 
-  decoupage-shop-pg-migrate:
+  pg-migrate:
     image: migrate/migrate:v4.17.1
     profiles: [ "tools" ]
     env_file:
       - '.env'
     depends_on:
-      decoupage-shop-pg:
+      pg:
         condition: service_healthy
     volumes:
       - ./shared/providers/core-db/migrations:/migrations

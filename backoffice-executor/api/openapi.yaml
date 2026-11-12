@@ -5,22 +5,34 @@ info:
   description: Административный API магазина.
 paths:
   /backoffice/v1/health:
-    get:
-      operationId: getHealth
-      summary: Проверка работоспособности HTTP-сервера
-      responses:
-        '200':
-          description: HTTP-сервер работает. Подключения к БД и S3 пока не проверяются.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/HealthResponse'
+    $ref: './components/paths/health.yaml'
+  /backoffice/v1/categories:
+    $ref: './components/paths/categories.yaml'
+  /backoffice/v1/categories/{id}:
+    $ref: './components/paths/category.yaml'
 components:
+  parameters:
+    CategoryID:
+      $ref: ./components/parameters/CategoryID.yaml
+  responses:
+    CategoryResponse:
+      $ref: ./components/responses/CategoryResponse.yaml
+    ErrorResponse:
+      $ref: ./components/responses/ErrorResponse.yaml
   schemas:
+    Category:
+      $ref: ./components/schemas/Category.yaml
+    CreateCategoryRequest:
+      $ref: ./components/schemas/CreateCategoryRequest.yaml
+    UpdateCategoryRequest:
+      $ref: ./components/schemas/UpdateCategoryRequest.yaml
+    Error:
+      $ref: ./components/schemas/Error.yaml
+    ErrorBody:
+      $ref: ./components/schemas/ErrorBody.yaml
+    ErrorDetail:
+      $ref: ./components/schemas/ErrorDetail.yaml
     HealthResponse:
-      type: object
-      required: [status]
-      properties:
-        status:
-          type: string
-          enum: [ok]
+      $ref: ./components/schemas/HealthResponse.yaml
+    HealthResponseStatus:
+      $ref: ./components/enums/HealthResponseStatus.yaml

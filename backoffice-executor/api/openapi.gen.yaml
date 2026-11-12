@@ -1,0 +1,242 @@
+openapi: 3.0.3
+info:
+  title: Backoffice API
+  version: 0.1.0
+  description: Административный API магазина.
+paths:
+  /backoffice/v1/health:
+    get:
+      operationId: getHealth
+      summary: Проверка работоспособности HTTP-сервера
+      responses:
+        '200':
+          description: HTTP-сервер работает. Подключения к БД и S3 пока не проверяются.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /backoffice/v1/categories:
+    get:
+      operationId: listCategories
+      summary: Список категорий в порядке «родитель перед детьми»
+      responses:
+        '200':
+          description: Плоский список; пустой результат — массив [].
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+    post:
+      operationId: createCategory
+      summary: Создание категории
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategoryRequest'
+      responses:
+        '201':
+          $ref: '#/components/responses/CategoryResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+  /backoffice/v1/categories/{id}:
+    parameters:
+      - $ref: '#/components/parameters/CategoryID'
+    get:
+      operationId: getCategory
+      summary: Получение категории по ID
+      responses:
+        '200':
+          $ref: '#/components/responses/CategoryResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+    patch:
+      operationId: updateCategory
+      summary: Частичное изменение категории
+      description: Отсутствующие поля сохраняются. Для переноса в корень передать clearParentId=true. Переименование не меняет slug.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategoryRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CategoryResponse'
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+    delete:
+      operationId: deleteCategory
+      summary: Удаление категории со всем поддеревом
+      description: Удаляет выбранную категорию и всех её потомков одной транзакцией. Все связанные товары сохраняются, их category_id становится NULL (корень каталога, без привязки к категории). Товары и категории вне удаляемой ветки не изменяются.
+      responses:
+        '204':
+          description: Категория и все её потомки удалены.
+        default:
+          $ref: '#/components/responses/ErrorResponse'
+components:
+  parameters:
+    CategoryID:
+      name: id
+      in: path
+      required: true
+      description: Положительный int64 в десятичной записи.
+      schema:
+        type: string
+        pattern: ^[1-9][0-9]*$
+  responses:
+    CategoryResponse:
+      description: Категория.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Category'
+    ErrorResponse:
+      description: Ошибка запроса. Код определяет причину, details содержит ошибки отдельных полей.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error:
+              code: VALIDATION_ERROR
+              message: Request validation failed
+              details:
+                - code: INVALID_VALUE
+                  message: must not be empty
+                  target: name
+  schemas:
+    Category:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - slug
+        - parentId
+        - sortOrder
+      properties:
+        id:
+          type: integer
+          format: int64
+          minimum: 1
+        name:
+          type: string
+        slug:
+          type: string
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 1
+        sortOrder:
+          type: integer
+          minimum: -2147483648
+          maximum: 2147483647
+    CreateCategoryRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          nullable: true
+          description: При отсутствии, null или пустом значении генерируется из name с числовым суффиксом при конфликте.
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 1
+        sortOrder:
+          type: integer
+          minimum: -2147483648
+          maximum: 2147483647
+          default: 0
+    UpdateCategoryRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+          minLength: 1
+        slug:
+          type: string
+          minLength: 1
+          description: Ручное значение; null и пустая строка запрещены.
+        parentId:
+          type: integer
+          format: int64
+          nullable: true
+          minimum: 1
+          description: Отсутствие и null сохраняют родителя. Для очистки использовать clearParentId.
+        clearParentId:
+          type: boolean
+          default: false
+          description: Перенос в корень. Нельзя сочетать с непустым parentId.
+        sortOrder:
+          type: integer
+          minimum: -2147483648
+          maximum: 2147483647
+    Error:
+      type: object
+      additionalProperties: false
+      required:
+        - error
+      properties:
+        error:
+          $ref: '#/components/schemas/ErrorBody'
+    ErrorBody:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: string
+          description: Стабильный машинный код ошибки.
+        message:
+          type: string
+          description: Безопасное сообщение без технических подробностей инфраструктуры.
+        details:
+          type: array
+          description: Необязательные ошибки отдельных полей.
+          items:
+            $ref: '#/components/schemas/ErrorDetail'
+    ErrorDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - code
+        - message
+        - target
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+        target:
+          type: string
+          description: Имя поля запроса, например name, slug, parentId или clearParentId.
+    HealthResponse:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          $ref: '#/components/schemas/HealthResponseStatus'
+    HealthResponseStatus:
+      type: string
+      enum:
+        - ok

@@ -1,3 +1,14 @@
+postgres:
+  host: 127.0.0.1
+  port: 15432
+  name: decoupage-napkins
+  user: decoupage-napkins
+  password: "12345678"
+  debug: false
+  max_open_conns: 10
+  max_idle_conns: 10
+  conn_max_lifetime: 180s
+
 http:
   host: 127.0.0.1
   port: 9889
