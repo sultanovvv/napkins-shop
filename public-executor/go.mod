@@ -1,6 +1,6 @@
 module napkins-shop/public-executor
 
-go 1.24.3
+go 1.26.11
 
 require (
 	github.com/brpaz/echozap v1.1.3

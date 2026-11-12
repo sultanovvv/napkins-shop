@@ -1,0 +1,26 @@
+openapi: 3.0.3
+info:
+  title: Backoffice API
+  version: 0.1.0
+  description: Административный API магазина.
+paths:
+  /backoffice/v1/health:
+    get:
+      operationId: getHealth
+      summary: Проверка работоспособности HTTP-сервера
+      responses:
+        '200':
+          description: HTTP-сервер работает. Подключения к БД и S3 пока не проверяются.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [ok]
